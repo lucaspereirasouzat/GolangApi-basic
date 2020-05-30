@@ -53,11 +53,11 @@ func Index(c *gin.Context) {
 
 	users := []user.User{}
 
-	page, err := strconv.ParseInt(c.DefaultQuery("page", "1"), 10, 16)
+	page, err := strconv.ParseInt(c.DefaultQuery("page", "0"), 10, 16)
 	rowsPerPage, err := strconv.ParseInt(c.DefaultQuery("rowsPerPage", "10"), 10, 16)
-
+	fmt.Println(page, rowsPerPage)
 	err = db.Select(&users, `SELECT * FROM users LIMIT ($1) OFFSET ($2)`, rowsPerPage, page*rowsPerPage)
-
+	fmt.Println(users)
 	if err != nil {
 		fmt.Println(err)
 		return
