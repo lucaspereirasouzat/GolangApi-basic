@@ -135,7 +135,41 @@ func Show(c *gin.Context) {
  Atualiza um novo usuario pelo id
 */
 func Update(c *gin.Context) {
+	db := connection.CreateConnection()
+	//user := user.User{}
 
+	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
+	if err != nil {
+		panic(err)
+	}
+	//	fmt.Println("% x", data)
+
+	var user user.User
+
+	err = msgpack.Unmarshal(data, &user)
+	if err != nil {
+		fmt.Println("error in conversion")
+		panic(err)
+	}
+
+	err = db.Get(&user, "UPDATE users SET username=$2, email=$3 WHERE id = $1", id, user.Username, user.Email)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Printf("%#v\n", user)
+
+	c.JSON(200, gin.H{
+		"username": "lucas",
+		"password": 1234,
+		"email":    "lucas@teste.com",
+	})
 	c.JSON(200, gin.H{
 		"username": "lucas",
 		"password": 1234,
@@ -147,6 +181,20 @@ func Update(c *gin.Context) {
  Deleta o usuario pelo id
 */
 func Delete(c *gin.Context) {
+	db := connection.CreateConnection()
+	user := user.User{}
+
+	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err = db.Get(&user, "DELETE FROM users WHERE id = $1", id)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Printf("%#v\n", user)
 
 	c.JSON(200, gin.H{
 		"username": "lucas",
