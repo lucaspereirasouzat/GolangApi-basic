@@ -1,62 +1,30 @@
 package migration
 
-import (
-	"database/sql"
-)
-
-// var schema = `
-// CREATE TABLE person (
-//     first_name text,
-//     last_name text,
-//     email text
-// );
-
-// CREATE TABLE place (
-//     country text,
-//     city text NULL,
-//     telcode integer
-// )`
-
 /*
 	Schema para se fazer as migrations
 */
 func Schema() string {
+
+	/**
+	DROP DATABASE users;
+	DROP DATABASE token;
+	*/
 	return `
+
 	CREATE TABLE IF NOT EXISTS users (
-		id SERIAL,
+		id SERIAL UNIQUE,
 		username text,
 		email text,
-		password text
-	) `
+		password text,
+		created_at DATE NOT NULL DEFAULT CURRENT_DATE
+	);
 
-	// return `
-	// CREATE TABLE user (
-	// 	username text,
-	// 	email text,
-	// 	password text
-	// );
+	CREATE TABLE IF NOT EXISTS token (
+		token text NOT NULL PRIMARY KEY,
+		is_revoked bool DEFAULT FALSE,
+		user_id INTEGER REFERENCES users(id),
+		created_at DATE NOT NULL DEFAULT CURRENT_DATE
+	);
+	`
 
-	// CREATE TABLE place (
-	// 	country text,
-	// 	city text NULL,
-	// 	telcode integer
-	// )`
-}
-
-/*
-	Person struct
-*/
-type Person struct {
-	FirstName string `db:"first_name"`
-	LastName  string `db:"last_name"`
-	Email     string
-}
-
-/*
-	Place struct
-*/
-type Place struct {
-	Country string
-	City    sql.NullString
-	TelCode int
 }

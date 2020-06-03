@@ -1,32 +1,35 @@
+package validator
 
-type Login struct {
-	User     string `form:"user" json:"user" xml:"user"  binding:"required"`
-	Password string `form:"password" json:"password" xml:"password" binding:"required"`
-}
+// import (
+// 	"fmt"
 
-func ValidateStructucture(data , validator)  {
-	err := validate.Struct(data)
+// 	"github.com/go-playground/validator/v10"
+// )
 
-	// this check is only needed when your code could produce
-		// an invalid value for validation such as interface with nil
-		// value most including myself do not usually have code like this.
-		if _, ok := err.(*validator.InvalidValidationError); ok {
-			fmt.Println(err)
-			return
-		}
+// func ValidateStructucture(data) {
+// 	validate := validator.New()
+// 	err := validate.Struct(data)
 
-		for _, err := range err.(validator.ValidationErrors) {
+// 	// this check is only needed when your code could produce
+// 	// an invalid value for validation such as interface with nil
+// 	// value most including myself do not usually have code like this.
+// 	if _, ok := err.(*validator.InvalidValidationError); ok {
+// 		fmt.Println(err)
+// 		return
+// 	}
 
-			fmt.Println(err.Namespace())
-			fmt.Println(err.Field())
-			fmt.Println(err.StructNamespace())
-			fmt.Println(err.StructField())
-			fmt.Println(err.Tag())
-			fmt.Println(err.ActualTag())
-			fmt.Println(err.Kind())
-			fmt.Println(err.Type())
-			fmt.Println(err.Value())
-			fmt.Println(err.Param())
-			fmt.Println()
-		}
-}
+// 	for _, err := range err.(validator.ValidationErrors) {
+
+// 		fmt.Println(err.Namespace())
+// 		fmt.Println(err.Field())
+// 		fmt.Println(err.StructNamespace())
+// 		fmt.Println(err.StructField())
+// 		fmt.Println(err.Tag())
+// 		fmt.Println(err.ActualTag())
+// 		fmt.Println(err.Kind())
+// 		fmt.Println(err.Type())
+// 		fmt.Println(err.Value())
+// 		fmt.Println(err.Param())
+// 		fmt.Println()
+// 	}
+// }

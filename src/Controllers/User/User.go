@@ -1,14 +1,15 @@
 package user
 
 import (
-	connection "docker.go/src/Connections"
-	user "docker.go/src/Models/User"
 	base64 "encoding/base64"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/vmihailenco/msgpack"
 	"net/http"
 	"strconv"
+
+	connection "docker.go/src/Connections"
+	user "docker.go/src/Models/User"
+	"github.com/gin-gonic/gin"
+	"github.com/vmihailenco/msgpack"
 )
 
 func ExampleMarshal() []byte {
@@ -63,6 +64,7 @@ func Index(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
+	db.Close()
 
 	type IndexList struct {
 		Page        int8
@@ -108,6 +110,9 @@ func Store(c *gin.Context) {
 	tx.MustExec("INSERT INTO users (username, email, password) VALUES ($1, $2, $3)", user.Username, user.Email, user.Password)
 
 	tx.Commit()
+
+	db.Close()
+
 	c.JSON(200, user)
 }
 
@@ -121,6 +126,8 @@ func Show(c *gin.Context) {
 	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
 
 	err = db.Get(&user, "SELECT * FROM users WHERE id=$1", id)
+	db.Close()
+
 	fmt.Printf("%#v\n", user)
 
 	if err != nil {
@@ -163,13 +170,10 @@ func Update(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
+	db.Close()
+
 	fmt.Printf("%#v\n", user)
 
-	c.JSON(200, gin.H{
-		"username": "lucas",
-		"password": 1234,
-		"email":    "lucas@teste.com",
-	})
 	c.JSON(200, gin.H{
 		"username": "lucas",
 		"password": 1234,
@@ -190,6 +194,8 @@ func Delete(c *gin.Context) {
 		return
 	}
 	err = db.Get(&user, "DELETE FROM users WHERE id = $1", id)
+	db.Close()
+
 	if err != nil {
 		fmt.Println(err)
 		return

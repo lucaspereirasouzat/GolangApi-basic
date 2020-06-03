@@ -10,7 +10,7 @@ func AuthRoutes(route *gin.Engine) {
 	auth := route.Group("auth")
 	{
 		auth.POST("session", session.Session)
-		// auth.GET("index/uers", userController.Index)
+		auth.POST("logout", session.Logout)
 		//auth.POST()
 	}
 }

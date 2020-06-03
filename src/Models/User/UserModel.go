@@ -1,14 +1,15 @@
 package user
 
+import "time"
+
+/* User é o modelo do usuario padrão */
 type User struct {
 	ID                        uint64
 	Username, Password, Email string
+	CreatedAt                 time.Time `db:"create_at"`
 }
 
-//A sample use
-var user = User{
-	// ID:       1,
-	Username: "username",
-	Password: "password",
-	Email:    "lucas@teste.com",
+type Token struct {
+	token string
+	user  User
 }
