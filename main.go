@@ -5,10 +5,9 @@ import (
 	"log"
 	"os"
 
+	commands "docker.go/src/Commands"
 	connection "docker.go/src/Connections"
-	migration "docker.go/src/Migrations"
 	routes "docker.go/src/Routes"
-	functions "docker.go/src/functions"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -21,30 +20,18 @@ func main() {
 		log.Fatal("Erro ao carregar o .env")
 	}
 
-	var db = connection.CreateConnection()
-
-	fmt.Println("Fez conexão")
+	db := connection.CreateConnection()
 
 	err = db.Ping()
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Fez conexão")
 
-	// Pega os dados do terminal
-	arg := os.Args[1:]
-	// se tiver a palavra migration ele faz a migration
-	if functions.Contains(arg, "migration") {
-		fmt.Println("Fazendo a migration")
-		schema := migration.Schema()
-		migrationExecutation := db.MustExec(schema)
-		if migrationExecutation != nil {
-			fmt.Println("Erro migration")
+	// Comandos no terminal
+	commands.Commands(db)
 
-			log.Fatal(migrationExecutation)
-		}
-	}
-
-	defer db.Close()
+	db.Close()
 
 	fmt.Println("Successfully connected!")
 

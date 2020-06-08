@@ -94,7 +94,6 @@ func Store(c *gin.Context) {
 	if err != nil {
 		panic(err)
 	}
-	//	fmt.Println("% x", data)
 
 	var user user.User
 
@@ -103,10 +102,6 @@ func Store(c *gin.Context) {
 		fmt.Println("error in conversion")
 		panic(err)
 	}
-	// fmt.Println("user conversion")
-
-	// fmt.Println(user)
-
 	tx.MustExec("INSERT INTO users (username, email, password) VALUES ($1, $2, $3)", user.Username, user.Email, user.Password)
 
 	tx.Commit()
@@ -155,7 +150,6 @@ func Update(c *gin.Context) {
 	if err != nil {
 		panic(err)
 	}
-	//	fmt.Println("% x", data)
 
 	var user user.User
 

@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// rotas de autenticação
+// AuthRoutes rotas de autenticação
 func AuthRoutes(route *gin.Engine) {
 	auth := route.Group("auth")
 	{

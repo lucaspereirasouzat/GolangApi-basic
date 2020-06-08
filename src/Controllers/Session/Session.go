@@ -3,11 +3,10 @@ package session
 import (
 	"fmt"
 	"net/http"
-	"os"
-	"time"
 
 	connection "docker.go/src/Connections"
 	user "docker.go/src/Models/User"
+	"docker.go/src/functions"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	validator "github.com/go-playground/validator/v10"
@@ -95,7 +94,7 @@ func Session(c *gin.Context) {
 
 	db := connection.CreateConnection()
 	err := db.Get(&user, "SELECT * FROM users WHERE email=($1) AND password=($2)", user.Email, user.Password)
-	db.Close()
+	defer db.Close()
 
 	if err != nil {
 		fmt.Println(err)
@@ -105,38 +104,19 @@ func Session(c *gin.Context) {
 		return
 	}
 
-	expirationTime := time.Now().Add(5 * time.Minute)
+	tokenString, err := functions.GenerateToken(user)
 
-	claims := &Token{
-		User: user,
-		StandardClaims: jwt.StandardClaims{
-			// In JWT, the expiry time is expressed as unix milliseconds
-			ExpiresAt: expirationTime.Unix(),
-		},
+	if err != nil {
+		c.JSON(400, tokenString)
+		return
 	}
+	// db = connection.CreateConnection()
+	// tx := db.MustBegin()
 
-	// Declare the token with the algorithm used for signing, and the claims
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	// // carregar env
-	// err := godotenv.Load()
-	// if err != nil {
-	// 	log.Fatal("Erro ao carregar o .env")
-	// }
-
-	//pega a chave do env
-	jwtKey := []byte(os.Getenv("API_KEY"))
-
-	// Create the JWT string
-	tokenString, err := token.SignedString(jwtKey)
-
-	db = connection.CreateConnection()
-	tx := db.MustBegin()
-
-	// Save in database the token
-	tx.MustExec("INSERT INTO token (token, user_id) VALUES ($1, $2)", tokenString, user.ID)
-	tx.Commit()
-	db.Close()
+	// // Save in database the token
+	// tx.MustExec("INSERT INTO token (token, user_id) VALUES ($1, $2)", tokenString, user.ID)
+	// tx.Commit()
+	// db.Close()
 
 	c.JSON(200, tokenString)
 }

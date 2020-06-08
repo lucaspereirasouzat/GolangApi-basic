@@ -2,11 +2,12 @@ package connection
 
 import (
 	"fmt"
-	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/joho/godotenv"
 )
 
 // CreateConnection  Cria connexão
@@ -42,10 +43,10 @@ func ConnectionDB() string {
 }
 
 //QueryTable Faz a query em uma tabela
-func QueryTable(table string, page int, rowsPerPage int, data interface{}) error {
-	q := fmt.Sprintf(`SELECT * FROM "%s" LIMIT "%p" OFFSET "%r"`, table, page, page*rowsPerPage)
+func QueryTable(table string, page int64, rowsPerPage int64, data interface{}) error {
+	//q := fmt.Sprintf()
 	db := CreateConnection()
-	err := db.Select(&data, q)
+	err := db.Select(&data, `SELECT * FROM ? LIMIT ? OFFSET ?`, table, strconv.FormatInt(page, 64), strconv.FormatInt(page*rowsPerPage, 64))
 	db.Close()
 	return err
 }
