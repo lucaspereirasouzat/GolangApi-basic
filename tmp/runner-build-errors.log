@@ -1,2 +1,0 @@
-# docker.go/src/Middleware
-src\Middleware\Auth.go:67:42: syntax error: unexpected literal "Username", expecting method or interface name

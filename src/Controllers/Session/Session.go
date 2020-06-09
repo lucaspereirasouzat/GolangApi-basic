@@ -143,6 +143,14 @@ func Logout(c *gin.Context) {
 	c.JSON(200, "Concluido")
 }
 
+/*
+ Procura um novo usuario pelo id
+*/
+func ShowMyUser(c *gin.Context) {
+	var users, _ = c.Get("auth")
+	c.JSON(200, users)
+}
+
 func validateStruct(user user.User, validate *validator.Validate) {
 
 	//	validate := validator.New()

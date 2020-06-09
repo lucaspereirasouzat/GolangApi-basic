@@ -1,6 +1,7 @@
 package functions
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -57,6 +58,10 @@ func ExtractToken(r *http.Request) string {
 // VerifyToken faz a verificação do token
 func VerifyToken(r *http.Request) (*jwt.Token, error) {
 	tokenString := ExtractToken(r)
+	if len(tokenString) == 0 {
+		err := errors.New("an error")
+		return nil, err
+	}
 	// para remover o double coute ""
 	newVal := tokenString[1 : len(tokenString)-1]
 	// retorna o token autenticado
