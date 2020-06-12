@@ -13,6 +13,7 @@ func AuthRoutes(route *gin.Engine) {
 		auth.POST("session", session.Session)
 		auth.POST("logout", session.Logout)
 		auth.Use(middleware.Auth())
+		auth.PUT("update", session.UpdateMyUser)
 		auth.GET("myUser", session.ShowMyUser)
 		//auth.POST()
 	}

@@ -1,6 +1,6 @@
-package validator
+package validatores
 
 type Query struct {
-	Page        int64 `form:"user" json:"user" xml:"user"  binding:"required"`
-	RowsPerPage int64 `form:"password" json:"password" xml:"password" binding:"required"`
+	Page        uint64 `form:"user" json:"user" xml:"user"  binding:"required"`
+	RowsPerPage uint64 `form:"password" json:"password" xml:"password" binding:"required"`
 }

@@ -9,9 +9,13 @@ import (
 	connection "docker.go/src/Connections"
 	routes "docker.go/src/Routes"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
+
+// use a single instance of Validate, it caches struct info
+var Validate *validator.Validate
 
 func main() {
 	// carregar env
@@ -39,6 +43,9 @@ func main() {
 	// ligar as rotas para o gin
 	routes.UsersRoutes(router)
 	routes.AuthRoutes(router)
+	routes.FileRoutes(router)
+
+	Validate = validator.New()
 
 	// Initializing the server in a goroutine so that
 	// it won't block the graceful shutdown handling below

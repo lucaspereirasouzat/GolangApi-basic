@@ -16,6 +16,7 @@ require (
 	github.com/pilu/config v0.0.0-20131214182432-3eb99e6c0b9a // indirect
 	github.com/pilu/fresh v0.0.0-20190826141211-0fa698148017 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/text v0.3.2
 	golang.org/x/tools/gopls v0.4.1 // indirect
 	gopkg.in/dgrijalva/jwt-go.v3 v3.2.0 // indirect

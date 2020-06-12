@@ -1,15 +1,21 @@
 package session
 
 import (
+	"encoding/base64"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	connection "docker.go/src/Connections"
-	user "docker.go/src/Models/User"
+	userModels "docker.go/src/Models/User"
+	validators "docker.go/src/Validators"
 	"docker.go/src/functions"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	validator "github.com/go-playground/validator/v10"
+	"github.com/vmihailenco/msgpack"
 )
 
 // 	"github.com/go-playground/validator/v10"
@@ -26,7 +32,7 @@ type Login struct {
 }
 
 type Token struct {
-	User user.User
+	User userModels.User
 	jwt.StandardClaims
 }
 
@@ -84,27 +90,43 @@ type Token struct {
 
 // Session Faz login do usuario
 func Session(c *gin.Context) {
-	var user user.User
+	var user Login
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
 		return
 	}
 	// validate := validator.New()
 	// validateStruct(user, validate)
-
+	var Fulluser userModels.User
 	db := connection.CreateConnection()
-	err := db.Get(&user, "SELECT * FROM users WHERE email=($1) AND password=($2)", user.Email, user.Password)
-	defer db.Close()
+	err := db.Get(&Fulluser, "SELECT * FROM users WHERE email=($1) AND password=($2)", user.Email, user.Password)
+	db.Close()
 
 	if err != nil {
 		fmt.Println(err)
+		myerror := validators.Error{
+			Field:   "email",
+			Message: "E-mail ou Senha inválidados",
+		}
+
+		var list [1]validators.Error
+		list[0] = myerror
+
+		type Errors struct {
+			Errors [1]validators.Error
+		}
+
+		listErrors := Errors{
+			Errors: list,
+		}
 		// erro de não encontrado
-		c.JSON(404, err)
+		c.JSON(400, listErrors)
 
 		return
 	}
+	fmt.Println(Fulluser)
 
-	tokenString, err := functions.GenerateToken(user)
+	tokenString, err := functions.GenerateToken(Fulluser)
 
 	if err != nil {
 		c.JSON(400, tokenString)
@@ -144,51 +166,11 @@ func Logout(c *gin.Context) {
 }
 
 /*
- Procura um novo usuario pelo id
+ Mostra os dados do proprio usuario do auth
 */
 func ShowMyUser(c *gin.Context) {
 	var users, _ = c.Get("auth")
 	c.JSON(200, users)
-}
-
-func validateStruct(user user.User, validate *validator.Validate) {
-
-	//	validate := validator.New()
-
-	// returns nil or ValidationErrors ( []FieldError )
-	err := validate.Struct(user)
-	fmt.Println(err)
-	//return err
-	if err != nil {
-
-		// this check is only needed when your code could produce
-		// an invalid value for validation such as interface with nil
-		// value most including myself do not usually have code like this.
-		if _, ok := err.(*validator.InvalidValidationError); ok {
-			fmt.Println(err)
-			return
-		}
-
-		for _, err := range err.(validator.ValidationErrors) {
-
-			fmt.Println(err.Namespace())
-			fmt.Println(err.Field())
-			fmt.Println(err.StructNamespace())
-			fmt.Println(err.StructField())
-			fmt.Println(err.Tag())
-			fmt.Println(err.ActualTag())
-			fmt.Println(err.Kind())
-			fmt.Println(err.Type())
-			fmt.Println(err.Value())
-			fmt.Println(err.Param())
-			fmt.Println()
-		}
-
-		// from here you can create your own error messages in whatever language you wish
-		return
-	}
-
-	// save user to database
 }
 
 // // Create the Signin handler
@@ -243,3 +225,104 @@ func validateStruct(user user.User, validate *validator.Validate) {
 // 		Expires: expirationTime,
 // 	})
 // }
+
+/*
+ Atualiza um novo usuario pelo id
+*/
+func UpdateMyUser(c *gin.Context) {
+
+	UserGet, _ := c.Get("auth")
+	us := UserGet.(userModels.User)
+
+	data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
+	if err != nil {
+		panic(err)
+	}
+
+	file, _, err := c.Request.FormFile("upload")
+	userid := strconv.Itoa(int(us.ID))
+	filepath := "./tmp/userfile_" + userid + ".png"
+	out, err := os.Create(filepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer out.Close()
+	_, err = io.Copy(out, file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if !us.FileId.Valid {
+		db := connection.CreateConnection()
+		tx := db.MustBegin()
+
+		tx.MustExec("INSERT INTO file (path, user_id) VALUES ($1, $2)", filepath, userid)
+		tx.Commit()
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		type FileResult struct {
+			ID uint64
+		}
+
+		var fileres FileResult
+		err = db.Get(&fileres, "SELECT id FROM file WHERE path = ($1)", filepath)
+		if err != nil {
+			fmt.Println("error on select", err)
+			return
+		}
+		fmt.Println(fileres)
+		var user userModels.User
+
+		err = msgpack.Unmarshal(data, &user)
+		if err != nil {
+			fmt.Println("error in conversion")
+			panic(err)
+		}
+
+		tx = db.MustBegin()
+		result := tx.MustExec("UPDATE users SET username = ($2), file_id = ($3) WHERE id = ($1)", us.ID, user.Username, fileres.ID)
+		fmt.Println(result)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		tx.Commit()
+
+		db.Close()
+
+		fmt.Printf("%#v\n", user)
+
+		c.JSON(200, user)
+	} else {
+		var user userModels.User
+
+		err = msgpack.Unmarshal(data, &user)
+		if err != nil {
+			fmt.Println("error in conversion")
+			panic(err)
+		}
+		db := connection.CreateConnection()
+
+		tx := db.MustBegin()
+		result := tx.MustExec("UPDATE users SET username = ($2) WHERE id = ($1)", us.ID, user.Username)
+		fmt.Println(result)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		tx.Commit()
+
+		db.Close()
+
+		fmt.Printf("%#v\n", user)
+
+		c.JSON(200, user)
+	}
+
+}

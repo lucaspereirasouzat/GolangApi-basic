@@ -14,7 +14,7 @@ func Seed(db *sqlx.DB) {
 	DROP DATABASE token;
 	*/
 	tx := db.MustBegin()
-	tx.MustExec("INSERT INTO users (username, email, password) VALUES ($1, $2, $3)", "Jason", "jmoiron@jmoiron.net", "Moiron")
+	tx.MustExec("INSERT INTO users (username, email, password,secureLevel) VALUES ($1, $2, $3, $4)", "Jason", "jmoiron@jmoiron.net", "1234", "ADM")
 
 	tx.Commit()
 	defer db.Close()

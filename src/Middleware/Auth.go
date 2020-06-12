@@ -39,8 +39,14 @@ func Auth() gin.HandlerFunc {
 			user.ID = uint64(usermaped["ID"].(float64))
 			user.Username = usermaped["Username"].(string)
 			user.Email = usermaped["Email"].(string)
-			user.CreatedAt, err = time.Parse("2006/01/02 03:04:05", usermaped["CreatedAt"].(string))
+			user.Securelevel = usermaped["Securelevel"].(string)
+			fileResult := usermaped["FileId"].(map[string]interface{})
+			user.FileId.Valid = fileResult["Valid"].(bool)
+			user.FileId.Int64 = int64(fileResult["Int64"].(float64))
+			//fmt.Println(usermaped["CreatedAt"].(string))
+			user.CreatedAt, err = time.Parse("0001-01-01T00:00:00Z", usermaped["CreatedAt"].(string))
 		}
+
 		c.Set("auth", user)
 		// before request
 

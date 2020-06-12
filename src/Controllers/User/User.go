@@ -8,9 +8,13 @@ import (
 
 	connection "docker.go/src/Connections"
 	user "docker.go/src/Models/User"
+	validatores "docker.go/src/Validators"
 	"github.com/gin-gonic/gin"
+
 	"github.com/vmihailenco/msgpack"
 )
+
+var table = "users"
 
 func ExampleMarshal() []byte {
 	type Item struct {
@@ -51,12 +55,36 @@ func ExampleMarshal() []byte {
 	Faz listagem de todos os usuarios
 */
 func Index(c *gin.Context) {
+	// type URI struct {
+	// 	Page        uint64 `json:"page" `
+	// 	RowsPerPage uint64 `json:"RowsPerPage"`
+	// }
+	// // pagaI, err := strconv.ParseUint(c.Param("page"), 10, 8)
+	// // rowsPerPage1, err := strconv.ParseUint(c.Param("rowsPerPage"), 10, 8)
+	// // data := Structure{
+	// // 	pagaI,
+	// // 	rowsPerPage1,
+	// // }
+	// // err = main.Validate.Struct(data)
+	// // validationErrors := err.(validator.ValidationErrors)
+
+	// // fmt.Println(validationErrors)
+
+	// var uri URI
+
+	// if err := c.BindQuery(&uri); err != nil {
+	// 	fmt.Println(uri)
+	// 	fmt.Println(err)
+	// 	c.JSON(400, gin.H{"msg": err})
+	// 	return
+	// }
+	// fmt.Println(uri)
 	db := connection.CreateConnection()
 
 	users := []user.User{}
 
-	page, err := strconv.ParseInt(c.DefaultQuery("page", "0"), 10, 16)
-	rowsPerPage, err := strconv.ParseInt(c.DefaultQuery("rowsPerPage", "10"), 10, 16)
+	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
+	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
 	//fmt.Println(page, rowsPerPage)
 	err = db.Select(&users, `SELECT * FROM users LIMIT ($1) OFFSET ($2)`, rowsPerPage, page*rowsPerPage)
 	//fmt.Println(users)
@@ -64,30 +92,29 @@ func Index(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
-	db.Close()
+	defer db.Close()
 
 	type IndexList struct {
-		Page        int8
-		RowsPerPage int16
+		Page        uint64
+		RowsPerPage uint64
 		Table       []user.User
 	}
 
-	list := IndexList{1, 10, users}
+	list := IndexList{page, rowsPerPage, users}
 
-	b, err := msgpack.Marshal(list)
-	if err != nil {
-		panic(err)
-	}
-	c.IndentedJSON(http.StatusOK, b)
+	// b, err := msgpack.Marshal(list)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	c.IndentedJSON(http.StatusOK, list)
 }
 
 /*
 	Cadastra um novo usuario no sistema
 */
+
 func Store(c *gin.Context) {
 
-	db := connection.CreateConnection()
-	tx := db.MustBegin()
 	fmt.Println(c.Request.FormValue("code"))
 
 	data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
@@ -95,18 +122,29 @@ func Store(c *gin.Context) {
 		panic(err)
 	}
 
-	var user user.User
+	var user validatores.Register
 
 	err = msgpack.Unmarshal(data, &user)
+	fmt.Println(user)
 	if err != nil {
 		fmt.Println("error in conversion")
 		panic(err)
 	}
+	// hasError, listError := validatores.Validate(user)
+	// fmt.Println(hasError, listError)
+
+	// if hasError {
+	// 	c.JSON(400, listError)
+	// 	return
+	// }
+	db := connection.CreateConnection()
+	tx := db.MustBegin()
+
 	tx.MustExec("INSERT INTO users (username, email, password) VALUES ($1, $2, $3)", user.Username, user.Email, user.Password)
 
 	tx.Commit()
 
-	db.Close()
+	defer db.Close()
 
 	c.JSON(200, user)
 }
@@ -137,7 +175,6 @@ func Show(c *gin.Context) {
  Atualiza um novo usuario pelo id
 */
 func Update(c *gin.Context) {
-	db := connection.CreateConnection()
 	//user := user.User{}
 
 	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
@@ -158,8 +195,9 @@ func Update(c *gin.Context) {
 		fmt.Println("error in conversion")
 		panic(err)
 	}
-
-	err = db.Get(&user, "UPDATE users SET username=$2, email=$3 WHERE id = $1", id, user.Username, user.Email)
+	db := connection.CreateConnection()
+	tx := db.MustBegin()
+	tx.MustExec("UPDATE users SET username=$2 WHERE id = $1", id, user.Username)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -168,11 +206,7 @@ func Update(c *gin.Context) {
 
 	fmt.Printf("%#v\n", user)
 
-	c.JSON(200, gin.H{
-		"username": "lucas",
-		"password": 1234,
-		"email":    "lucas@teste.com",
-	})
+	c.JSON(200, user)
 }
 
 /*
