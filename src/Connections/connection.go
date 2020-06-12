@@ -43,10 +43,9 @@ func ConnectionDB() string {
 }
 
 //QueryTable Faz a query em uma tabela
-func QueryTable(table string, page int64, rowsPerPage int64, data interface{}) error {
-	//q := fmt.Sprintf()
+func QueryTable(table string, page uint64, rowsPerPage uint64, data interface{}) error {
 	db := CreateConnection()
-	err := db.Select(&data, `SELECT * FROM ? LIMIT ? OFFSET ?`, table, strconv.FormatInt(page, 64), strconv.FormatInt(page*rowsPerPage, 64))
+	err := db.Select(data, `SELECT * FROM `+table+` LIMIT ($1) OFFSET ($2)`, rowsPerPage, rowsPerPage*page)
 	db.Close()
 	return err
 }

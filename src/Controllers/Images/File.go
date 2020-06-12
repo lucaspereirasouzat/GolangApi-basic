@@ -53,39 +53,14 @@ func ExampleMarshal() []byte {
 	Faz listagem de todos os usuarios
 */
 func Index(c *gin.Context) {
-	// type URI struct {
-	// 	Page        uint64 `json:"page" `
-	// 	RowsPerPage uint64 `json:"RowsPerPage"`
-	// }
-	// // pagaI, err := strconv.ParseUint(c.Param("page"), 10, 8)
-	// // rowsPerPage1, err := strconv.ParseUint(c.Param("rowsPerPage"), 10, 8)
-	// // data := Structure{
-	// // 	pagaI,
-	// // 	rowsPerPage1,
-	// // }
-	// // err = main.Validate.Struct(data)
-	// // validationErrors := err.(validator.ValidationErrors)
-
-	// // fmt.Println(validationErrors)
-
-	// var uri URI
-
-	// if err := c.BindQuery(&uri); err != nil {
-	// 	fmt.Println(uri)
-	// 	fmt.Println(err)
-	// 	c.JSON(400, gin.H{"msg": err})
-	// 	return
-	// }
-	// fmt.Println(uri)
 	db := connection.CreateConnection()
 
 	files := []file.File{}
 
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
 	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
-	//fmt.Println(page, rowsPerPage)
-	err = db.Select(&files, `SELECT * FROM file LIMIT ($1) OFFSET ($2)`, rowsPerPage, page*rowsPerPage)
-	//fmt.Println(file)
+
+	err = connection.QueryTable("file", page, rowsPerPage, &files)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -100,10 +75,6 @@ func Index(c *gin.Context) {
 
 	list := IndexList{page, rowsPerPage, files}
 
-	// b, err := msgpack.Marshal(list)
-	// if err != nil {
-	// 	panic(err)
-	// }
 	c.IndentedJSON(http.StatusOK, list)
 }
 
