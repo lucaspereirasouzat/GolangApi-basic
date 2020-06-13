@@ -1,3 +1,4 @@
-# docker.go/src/Controllers/Session
-src\Controllers\Session\Session.go:102:6: cannot use functions.ComparePasswords(user.Password, resultPassword) (type bool) as type error in assignment:
-	bool does not implement error (missing Error method)
+# docker.go/src/Controllers/Notification
+src\Controllers\Notification\Notification.go:100:2: undefined: err
+src\Controllers\Notification\Notification.go:105:5: undefined: err
+src\Controllers\Notification\Notification.go:106:15: undefined: err

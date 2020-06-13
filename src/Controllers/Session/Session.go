@@ -89,9 +89,7 @@ func Session(c *gin.Context) {
 	}
 
 	user.Password, _ = functions.GeneratePassword(user.Password)
-	fmt.Println(user.Password)
-	// validate := validator.New()
-	// validateStruct(user, validate)
+
 	var Fulluser userModels.User
 	db := connection.CreateConnection()
 	err := db.Get(&Fulluser, "SELECT * FROM users WHERE email=($1) ", user.Email)

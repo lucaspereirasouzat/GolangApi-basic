@@ -9,45 +9,11 @@ import (
 	connection "docker.go/src/Connections"
 	notification "docker.go/src/Models/Notification"
 	userModels "docker.go/src/Models/User"
+	"docker.go/src/functions"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/vmihailenco/msgpack"
 )
-
-func ExampleMarshal() []byte {
-	type Item struct {
-		Foo string
-	}
-
-	b, err := msgpack.Marshal(&Item{Foo: "lucas"})
-	if err != nil {
-		panic(err)
-	}
-
-	var item Item
-	err = msgpack.Unmarshal(b, &item)
-	if err != nil {
-		panic(err)
-	}
-	// array bytenumber
-	fmt.Println(b)
-
-	// decodifica do base64 string msgpack
-	data, err := base64.StdEncoding.DecodeString("3wAAAAOodXNlcm5hbWWtbHVjYXMgUGVyZWlyYaVlbWFpbK9sdWNhc0B0ZXN0ZS5jb22ocGFzc3dvcmSkMTIzNA==")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("% x", data)
-
-	var item2 Item
-	var err2 = msgpack.Unmarshal(data, &item)
-	if err2 != nil {
-		panic(err2)
-	}
-	fmt.Println(item2)
-
-	return b
-}
 
 /*
 	Faz listagem de todos os tokens de notificação
@@ -92,19 +58,20 @@ func Store(c *gin.Context) {
 	db := connection.CreateConnection()
 	tx := db.MustBegin()
 
-	data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
-	if err != nil {
-		panic(err)
-	}
-
 	var notificationItem = notification.Notification{}
-
-	err = msgpack.Unmarshal(data, &notificationItem)
+	err := functions.FromMSGPACK(c.Request.FormValue("code"), &notificationItem)
 
 	if err != nil {
-		fmt.Println("error in conversion")
 		panic(err)
 	}
+	// data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
+
+	// err = msgpack.Unmarshal(data, &notificationItem)
+
+	// if err != nil {
+	// 	fmt.Println("error in conversion")
+	// 	panic(err)
+	// }
 	//	hasError, listError := validators.Validate(notificationItem)
 
 	// if hasError {
@@ -128,9 +95,9 @@ func Show(c *gin.Context) {
 	db := connection.CreateConnection()
 	mynotification := notification.Notification{}
 
-	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
+	id := c.Query("id")
 
-	err = db.Get(&mynotification, "SELECT * FROM notification WHERE tokennotification=($1)", id)
+	err := db.Get(&mynotification, "SELECT * FROM notification WHERE tokennotification=($1)", id)
 	db.Close()
 
 	fmt.Println(mynotification)
