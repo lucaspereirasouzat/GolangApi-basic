@@ -7,7 +7,7 @@ import (
 
 /* Notification é o modelo das notificações */
 type Notification struct {
-	tokennotification string        `db:"tokennotification"`
+	TokenNotification string        `db:"tokennotification"`
 	UserID            sql.NullInt64 `db:"user_id"`
 	CreatedAt         time.Time     `db:"created_at"`
 }

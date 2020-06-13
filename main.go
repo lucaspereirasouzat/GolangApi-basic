@@ -44,6 +44,7 @@ func main() {
 	routes.UsersRoutes(router)
 	routes.AuthRoutes(router)
 	routes.FileRoutes(router)
+	routes.NotificationRoutes(router)
 
 	Validate = validator.New()
 

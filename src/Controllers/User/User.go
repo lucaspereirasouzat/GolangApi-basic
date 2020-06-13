@@ -59,7 +59,7 @@ func Index(c *gin.Context) {
 
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
 	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
-	//fmt.Println(page, rowsPerPage)
+
 	err = connection.QueryTable("users", page, rowsPerPage, &users)
 
 	if err != nil {

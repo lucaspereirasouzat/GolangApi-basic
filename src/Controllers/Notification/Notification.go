@@ -7,11 +7,10 @@ import (
 	"strconv"
 
 	connection "docker.go/src/Connections"
-	user "docker.go/src/Models/User"
-	validators "docker.go/src/Validators"
+	notification "docker.go/src/Models/Notification"
+	userModels "docker.go/src/Models/User"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-
 	"github.com/vmihailenco/msgpack"
 )
 
@@ -51,56 +50,28 @@ func ExampleMarshal() []byte {
 }
 
 /*
-	Faz listagem de todos os usuarios
+	Faz listagem de todos os tokens de notificação
 */
 func Index(c *gin.Context) {
-	// type URI struct {
-	// 	Page        uint64 `json:"page" `
-	// 	RowsPerPage uint64 `json:"RowsPerPage"`
-	// }
-	// // pagaI, err := strconv.ParseUint(c.Param("page"), 10, 8)
-	// // rowsPerPage1, err := strconv.ParseUint(c.Param("rowsPerPage"), 10, 8)
-	// // data := Structure{
-	// // 	pagaI,
-	// // 	rowsPerPage1,
-	// // }
-	// // err = main.Validate.Struct(data)
-	// // validationErrors := err.(validator.ValidationErrors)
-
-	// // fmt.Println(validationErrors)
-
-	// var uri URI
-
-	// if err := c.BindQuery(&uri); err != nil {
-	// 	fmt.Println(uri)
-	// 	fmt.Println(err)
-	// 	c.JSON(400, gin.H{"msg": err})
-	// 	return
-	// }
-	// fmt.Println(uri)
-	db := connection.CreateConnection()
-
-	users := []user.User{}
+	notifications := []notification.Notification{}
 
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
 	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
-	//fmt.Println(page, rowsPerPage)
-	err = db.Select(&users, `SELECT * FROM users LIMIT ($1) OFFSET ($2)`, rowsPerPage, page*rowsPerPage)
-	//fmt.Println(users)
+
+	err = connection.QueryTable("notification", page, rowsPerPage, &notifications)
+
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
-	defer db.Close()
 
 	type IndexList struct {
 		Page        uint64
 		RowsPerPage uint64
-		Table       []user.User
+		Table       []notification.Notification
 	}
 
-	list := IndexList{page, rowsPerPage, users}
-
+	list := IndexList{page, rowsPerPage, notifications}
+	fmt.Println(list)
 	// b, err := msgpack.Marshal(list)
 	// if err != nil {
 	// 	panic(err)
@@ -108,72 +79,68 @@ func Index(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, list)
 }
 
-/*
-	Cadastra um novo usuario no sistema
-*/
 var validate *validator.Validate
 
+/*
+	Store Cadastra um novo token de notificação no sistema
+*/
 func Store(c *gin.Context) {
+
+	UserGet, _ := c.Get("auth")
+	us := UserGet.(userModels.User)
 
 	db := connection.CreateConnection()
 	tx := db.MustBegin()
-	fmt.Println(c.Request.FormValue("code"))
 
 	data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
 	if err != nil {
 		panic(err)
 	}
 
-	type User struct {
-		Username string `validate:"required"`
-		Email    string `validate:"required,email"`
-		Password string `validate:"required"`
-	}
+	var notificationItem = notification.Notification{}
 
-	var user User
-
-	err = msgpack.Unmarshal(data, &user)
+	err = msgpack.Unmarshal(data, &notificationItem)
 
 	if err != nil {
 		fmt.Println("error in conversion")
 		panic(err)
 	}
-	hasError, listError := validators.Validate(user)
+	//	hasError, listError := validators.Validate(notificationItem)
 
-	if hasError {
-		c.JSON(400, listError)
-		return
-	}
+	// if hasError {
+	// 	c.JSON(400, listError)
+	// 	return
+	// }
 
-	tx.MustExec("INSERT INTO users (username, email, password) VALUES ($1, $2, $3)", user.Username, user.Email, user.Password)
+	tx.MustExec("INSERT INTO notification (tokennotification, user_id) VALUES ($1, $2)", notificationItem.TokenNotification, us.ID)
 
 	tx.Commit()
 
 	db.Close()
 
-	c.JSON(200, user)
+	c.JSON(200, notificationItem)
 }
 
-/*
- Procura um novo usuario pelo id
-*/
+// /*
+//  Procura um novo usuario pelo id
+// */
 func Show(c *gin.Context) {
 	db := connection.CreateConnection()
-	user := user.User{}
+	mynotification := notification.Notification{}
 
 	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
 
-	err = db.Get(&user, "SELECT * FROM users WHERE id=$1", id)
+	err = db.Get(&mynotification, "SELECT * FROM notification WHERE tokennotification=($1)", id)
 	db.Close()
 
-	fmt.Printf("%#v\n", user)
+	fmt.Println(mynotification)
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	c.JSON(200, user)
+	c.JSON(200, mynotification)
 }
 
 /*
@@ -183,65 +150,57 @@ func Update(c *gin.Context) {
 	db := connection.CreateConnection()
 	//user := user.User{}
 
-	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	id := c.Query("id")
 
 	data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
 	if err != nil {
 		panic(err)
 	}
 
-	var user user.User
+	var notificationItem notification.Notification
 
-	err = msgpack.Unmarshal(data, &user)
+	err = msgpack.Unmarshal(data, &notificationItem)
 	if err != nil {
 		fmt.Println("error in conversion")
 		panic(err)
 	}
 
-	err = db.Get(&user, "UPDATE users SET username=$2, email=$3 WHERE id = $1", id, user.Username, user.Email)
+	err = db.Get(&notificationItem, "UPDATE notification SET tokennotification = ($2) WHERE tokennotification = ($1)", id, notificationItem.TokenNotification)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	db.Close()
 
-	fmt.Printf("%#v\n", user)
+	fmt.Printf("%#v\n", notificationItem)
 
-	c.JSON(200, gin.H{
-		"username": "lucas",
-		"password": 1234,
-		"email":    "lucas@teste.com",
-	})
+	c.JSON(200, notificationItem)
 }
 
 /*
  Deleta o usuario pelo id
 */
-func Delete(c *gin.Context) {
-	db := connection.CreateConnection()
-	user := user.User{}
+// func Delete(c *gin.Context) {
+// 	db := connection.CreateConnection()
+// 	user := user.User{}
 
-	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	err = db.Get(&user, "DELETE FROM users WHERE id = $1", id)
-	db.Close()
+// 	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return
+// 	}
+// 	err = db.Get(&user, "DELETE FROM users WHERE id = $1", id)
+// 	db.Close()
 
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Printf("%#v\n", user)
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return
+// 	}
+// 	fmt.Printf("%#v\n", user)
 
-	c.JSON(200, gin.H{
-		"username": "lucas",
-		"password": 1234,
-		"email":    "lucas@teste.com",
-	})
-}
+// 	c.JSON(200, gin.H{
+// 		"username": "lucas",
+// 		"password": 1234,
+// 		"email":    "lucas@teste.com",
+// 	})
+// }

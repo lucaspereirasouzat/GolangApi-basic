@@ -18,14 +18,6 @@ import (
 	"github.com/vmihailenco/msgpack"
 )
 
-// 	"github.com/go-playground/validator/v10"
-// )
-
-// type Login struct {
-// 	User     string `form:"user" json:"user" xml:"user"  binding:"required"`
-// 	Password string `form:"password" json:"password" xml:"password" binding:"required"`
-// }
-
 type Login struct {
 	Email    string `validate:"required,email"`
 	Password string `validate:"required"`
@@ -132,13 +124,6 @@ func Session(c *gin.Context) {
 		c.JSON(400, tokenString)
 		return
 	}
-	// db = connection.CreateConnection()
-	// tx := db.MustBegin()
-
-	// // Save in database the token
-	// tx.MustExec("INSERT INTO token (token, user_id) VALUES ($1, $2)", tokenString, user.ID)
-	// tx.Commit()
-	// db.Close()
 
 	c.JSON(200, tokenString)
 }
