@@ -16,7 +16,7 @@ func Schema() string {
 		username text,
 		email text UNIQUE,
 		password text,
-		secureLevel text DEFAULT "user",
+		secureLevel text DEFAULT 'user',
 		file_id text,
 		created_at DATE NOT NULL DEFAULT CURRENT_DATE
 	);

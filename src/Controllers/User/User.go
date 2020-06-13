@@ -9,6 +9,7 @@ import (
 	connection "docker.go/src/Connections"
 	user "docker.go/src/Models/User"
 	validatores "docker.go/src/Validators"
+	"docker.go/src/functions"
 	"github.com/gin-gonic/gin"
 
 	"github.com/vmihailenco/msgpack"
@@ -110,6 +111,9 @@ func Store(c *gin.Context) {
 	// 	c.JSON(400, listError)
 	// 	return
 	// }
+
+	user.Password, _ = functions.GeneratePassword(user.Password)
+
 	db := connection.CreateConnection()
 	tx := db.MustBegin()
 

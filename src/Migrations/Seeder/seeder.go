@@ -1,6 +1,7 @@
 package seeder
 
 import (
+	"docker.go/src/functions"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -14,7 +15,9 @@ func Seed(db *sqlx.DB) {
 	DROP DATABASE token;
 	*/
 	tx := db.MustBegin()
-	tx.MustExec("INSERT INTO users (username, email, password,secureLevel) VALUES ($1, $2, $3, $4)", "Jason", "jmoiron@jmoiron.net", "1234", "ADM")
+	var Password, _ = functions.GeneratePassword("1234")
+
+	tx.MustExec("INSERT INTO users (username, email, password,secureLevel) VALUES ($1, $2, $3, $4)", "Jason", "jmoiron@jmoiron.net", Password, "ADM")
 
 	tx.Commit()
 	defer db.Close()

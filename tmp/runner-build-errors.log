@@ -1,0 +1,3 @@
+# docker.go/src/Controllers/Session
+src\Controllers\Session\Session.go:102:6: cannot use functions.ComparePasswords(user.Password, resultPassword) (type bool) as type error in assignment:
+	bool does not implement error (missing Error method)

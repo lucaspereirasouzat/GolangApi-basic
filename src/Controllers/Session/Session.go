@@ -87,14 +87,21 @@ func Session(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
 		return
 	}
+
+	user.Password, _ = functions.GeneratePassword(user.Password)
+	fmt.Println(user.Password)
 	// validate := validator.New()
 	// validateStruct(user, validate)
 	var Fulluser userModels.User
 	db := connection.CreateConnection()
-	err := db.Get(&Fulluser, "SELECT * FROM users WHERE email=($1) AND password=($2)", user.Email, user.Password)
+	err := db.Get(&Fulluser, "SELECT * FROM users WHERE email=($1) ", user.Email)
 	db.Close()
 
-	if err != nil {
+	var resultPassword = []byte(Fulluser.Password)
+
+	equal := functions.ComparePasswords(user.Password, resultPassword)
+
+	if err != nil || equal {
 		fmt.Println(err)
 		myerror := validators.Error{
 			Field:   "email",
