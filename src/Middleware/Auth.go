@@ -12,15 +12,27 @@ import (
 )
 
 // Auth Faz o Log do sistema
-func Auth() gin.HandlerFunc {
+func Auth(list []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+
+		if len(list) == 0 {
+			c.Next()
+			return
+		}
 		// faz a verificação do token enviado no bear token do header
 		token, err := functions.VerifyToken(c.Request)
 
 		if err != nil {
+
+			if functions.Contains(list, "guest") {
+				c.Next()
+				return
+			}
+
 			fmt.Println("error", err)
 			// Envia o erro caso não consiga verificar o erro
 			c.JSON(404, "Token incorreto ou não enviado")
+			return
 			// Quebra a aplicação
 			panic(err)
 		}
@@ -34,6 +46,13 @@ func Auth() gin.HandlerFunc {
 			data := claims["User"]
 
 			var usermaped = data.(map[string]interface{})
+
+			securelevel := usermaped["Securelevel"].(string)
+
+			if !functions.Contains(list, securelevel) {
+				c.JSON(404, "Você não tem permição para fazer isso")
+				return
+			}
 
 			user.ID = uint64(usermaped["ID"].(float64))
 			user.Username = usermaped["Username"].(string)
