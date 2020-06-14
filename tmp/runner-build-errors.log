@@ -1,4 +1,3 @@
 # docker.go/src/Controllers/Notification
-src\Controllers\Notification\Notification.go:100:2: undefined: err
-src\Controllers\Notification\Notification.go:105:5: undefined: err
-src\Controllers\Notification\Notification.go:106:15: undefined: err
+src\Controllers\Notification\Notification.go:158:22: undefined: user
+src\Controllers\Notification\Notification.go:160:14: undefined: user

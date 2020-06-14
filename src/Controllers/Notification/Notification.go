@@ -1,7 +1,6 @@
 package notification
 
 import (
-	base64 "encoding/base64"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,7 +11,6 @@ import (
 	"docker.go/src/functions"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/vmihailenco/msgpack"
 )
 
 /*
@@ -119,14 +117,9 @@ func Update(c *gin.Context) {
 
 	id := c.Query("id")
 
-	data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
-	if err != nil {
-		panic(err)
-	}
-
 	var notificationItem notification.Notification
 
-	err = msgpack.Unmarshal(data, &notificationItem)
+	err := functions.FromMSGPACK(c.Request.FormValue("code"), &notificationItem)
 	if err != nil {
 		fmt.Println("error in conversion")
 		panic(err)
@@ -147,27 +140,21 @@ func Update(c *gin.Context) {
 /*
  Deleta o usuario pelo id
 */
-// func Delete(c *gin.Context) {
-// 	db := connection.CreateConnection()
-// 	user := user.User{}
+func Delete(c *gin.Context) {
+	db := connection.CreateConnection()
 
-// 	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return
-// 	}
-// 	err = db.Get(&user, "DELETE FROM users WHERE id = $1", id)
-// 	db.Close()
+	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	db.MustExec("DELETE FROM notification WHERE tokennotification = ($1)", id)
+	db.Close()
 
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return
-// 	}
-// 	fmt.Printf("%#v\n", user)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
-// 	c.JSON(200, gin.H{
-// 		"username": "lucas",
-// 		"password": 1234,
-// 		"email":    "lucas@teste.com",
-// 	})
-// }
+	c.JSON(200, "OK")
+}

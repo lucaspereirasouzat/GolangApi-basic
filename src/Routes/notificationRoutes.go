@@ -16,6 +16,7 @@ func NotificationRoutes(route *gin.Engine) {
 		auth.GET("index", notificationController.Index)
 		auth.GET("show", notificationController.Show)
 		auth.PUT("update", notificationController.Update)
+		auth.DELETE("delete", notificationController.Delete)
 		//auth.POST()
 	}
 }
