@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"log"
 
 	"docker.go/src/functions"
@@ -29,12 +28,10 @@ func Auth(list []string) gin.HandlerFunc {
 				return
 			}
 
-			fmt.Println("error", err)
 			// Envia o erro caso não consiga verificar o erro
 			c.JSON(404, "Token incorreto ou não enviado")
-			return
-			// Quebra a aplicação
 			panic(err)
+			return
 		}
 		// faz o map do Usuario e verifica se está ok
 		claims, ok := token.Claims.(jwt.MapClaims)
@@ -51,6 +48,7 @@ func Auth(list []string) gin.HandlerFunc {
 
 			if !functions.Contains(list, securelevel) {
 				c.JSON(404, "Você não tem permição para fazer isso")
+				panic(err)
 				return
 			}
 
@@ -64,7 +62,8 @@ func Auth(list []string) gin.HandlerFunc {
 			//fmt.Println(usermaped["CreatedAt"].(string))
 			//user.CreatedAt, err = time.Parse("0001-01-01T00:00:00Z", usermaped["CreatedAt"].(string))
 		}
-		fmt.Println(user)
+		//fmt.Println(user)
+
 		c.Set("auth", user)
 		// before request
 

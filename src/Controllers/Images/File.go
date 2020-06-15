@@ -1,7 +1,6 @@
 package notification
 
 import (
-	base64 "encoding/base64"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,44 +9,9 @@ import (
 	file "docker.go/src/Models/File"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-
-	"github.com/vmihailenco/msgpack"
 )
 
-func ExampleMarshal() []byte {
-	type Item struct {
-		Foo string
-	}
-
-	b, err := msgpack.Marshal(&Item{Foo: "lucas"})
-	if err != nil {
-		panic(err)
-	}
-
-	var item Item
-	err = msgpack.Unmarshal(b, &item)
-	if err != nil {
-		panic(err)
-	}
-	// array bytenumber
-	fmt.Println(b)
-
-	// decodifica do base64 string msgpack
-	data, err := base64.StdEncoding.DecodeString("3wAAAAOodXNlcm5hbWWtbHVjYXMgUGVyZWlyYaVlbWFpbK9sdWNhc0B0ZXN0ZS5jb22ocGFzc3dvcmSkMTIzNA==")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("% x", data)
-
-	var item2 Item
-	var err2 = msgpack.Unmarshal(data, &item)
-	if err2 != nil {
-		panic(err2)
-	}
-	fmt.Println(item2)
-
-	return b
-}
+var table = "file"
 
 /*
 	Faz listagem de todos os usuarios
@@ -60,7 +24,12 @@ func Index(c *gin.Context) {
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
 	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
 
-	err = connection.QueryTable("file", page, rowsPerPage, &files)
+	err = connection.QueryTable(table, page, rowsPerPage, &files)
+	total, err := connection.QueryTotalTable(table)
+	if err != nil {
+		c.String(400, "%s", err)
+		panic(err)
+	}
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -70,10 +39,11 @@ func Index(c *gin.Context) {
 	type IndexList struct {
 		Page        uint64
 		RowsPerPage uint64
+		Total       uint64
 		Table       []file.File
 	}
 
-	list := IndexList{page, rowsPerPage, files}
+	list := IndexList{page, rowsPerPage, total, files}
 
 	c.IndentedJSON(http.StatusOK, list)
 }

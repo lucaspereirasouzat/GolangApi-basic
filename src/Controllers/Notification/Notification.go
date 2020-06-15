@@ -13,6 +13,8 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+var table = "notification"
+
 /*
 	Faz listagem de todos os tokens de notificação
 */
@@ -22,19 +24,21 @@ func Index(c *gin.Context) {
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
 	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
 
-	err = connection.QueryTable("notification", page, rowsPerPage, &notifications)
-
+	err = connection.QueryTable(table, page, rowsPerPage, &notifications)
+	total, err := connection.QueryTotalTable(table)
 	if err != nil {
-		return
+		c.String(400, "%s", err)
+		panic(err)
 	}
 
 	type IndexList struct {
 		Page        uint64
 		RowsPerPage uint64
+		Total       uint64
 		Table       []notification.Notification
 	}
 
-	list := IndexList{page, rowsPerPage, notifications}
+	list := IndexList{page, rowsPerPage, total, notifications}
 	fmt.Println(list)
 	// b, err := msgpack.Marshal(list)
 	// if err != nil {
@@ -77,7 +81,7 @@ func Store(c *gin.Context) {
 	// 	return
 	// }
 
-	tx.MustExec("INSERT INTO notification (tokennotification, user_id) VALUES ($1, $2)", notificationItem.TokenNotification, us.ID)
+	tx.MustExec("INSERT INTO "+table+" (tokennotification, user_id) VALUES ($1, $2)", notificationItem.TokenNotification, us.ID)
 
 	tx.Commit()
 
@@ -95,7 +99,7 @@ func Show(c *gin.Context) {
 
 	id := c.Query("id")
 
-	err := db.Get(&mynotification, "SELECT * FROM notification WHERE tokennotification=($1)", id)
+	err := db.Get(&mynotification, "SELECT * FROM "+table+" WHERE tokennotification=($1)", id)
 	db.Close()
 
 	fmt.Println(mynotification)
@@ -125,7 +129,7 @@ func Update(c *gin.Context) {
 		panic(err)
 	}
 
-	err = db.Get(&notificationItem, "UPDATE notification SET tokennotification = ($2) WHERE tokennotification = ($1)", id, notificationItem.TokenNotification)
+	err = db.Get(&notificationItem, "UPDATE "+table+" SET tokennotification = ($2) WHERE tokennotification = ($1)", id, notificationItem.TokenNotification)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -148,7 +152,7 @@ func Delete(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
-	db.MustExec("DELETE FROM notification WHERE tokennotification = ($1)", id)
+	db.MustExec("DELETE FROM "+table+" WHERE tokennotification = ($1)", id)
 	db.Close()
 
 	if err != nil {

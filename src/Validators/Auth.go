@@ -8,9 +8,9 @@ type Login struct {
 
 // Register Faz a validação do Register
 type Register struct {
-	Username string // `validate:"required"`
-	Email    string //`validate:"required,email"`
-	Password string //`validate:"required"`
+	Username string `validate:"required"`
+	Email    string `validate:"required,email"`
+	Password string `validate:"required"`
 }
 
 // UpdateUser Faz a validação do UpdateUser
