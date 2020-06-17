@@ -15,7 +15,7 @@ func Seed(db *sqlx.DB) {
 	DROP DATABASE token;
 	*/
 	tx := db.MustBegin()
-	var Password, _ = functions.GeneratePassword("1234")
+	var Password = functions.GenerateMD5("1234")
 
 	tx.MustExec("INSERT INTO users (username, email, password,secureLevel) VALUES ($1, $2, $3, $4)", "Jason", "jmoiron@jmoiron.net", Password, "ADM")
 

@@ -11,7 +11,7 @@ import (
 func NotificationRoutes(route *gin.Engine) {
 	auth := route.Group("notification")
 	{
-		authentication := []string{"guest"}
+		authentication := []string{"user", "ADM"}
 		auth.Use(middleware.Auth(authentication))
 		auth.POST("store", notificationController.Store)
 		auth.GET("index", notificationController.Index)

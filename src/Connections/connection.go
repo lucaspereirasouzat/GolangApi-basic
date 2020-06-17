@@ -8,9 +8,54 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/elastic/go-elasticsearch/v6"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 )
+
+func MongoConnection() {
+	// client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
+	// err = client.Ping(ctx, readpref.Primary())
+	// collection := client.Database("testing").Collection("numbers")
+	// fmt.Println("entrou no mongo db")
+	// fmt.Println(collection)
+	// ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
+	// res, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
+	// id := res.InsertedID
+	//fmt.Println(id)
+
+	// es, err := elasticsearch.NewDefaultClient()
+	// if err != nil {
+	// 	log.Fatalf("Error creating the client: %s", err)
+	// }
+
+	// res, err := es.Info()
+	// if err != nil {
+	// 	log.Fatalf("Error getting response: %s", err)
+	// }
+
+	// //defer res.Body.Close()
+	// log.Println(res)
+}
+
+func Elastic() {
+	es, err := elasticsearch.NewDefaultClient()
+	if err != nil {
+		log.Fatalf("Error creating the client: %s", err)
+	}
+
+	res, err := es.Info()
+	if err != nil {
+		log.Fatalf("Error getting response: %s", err)
+	}
+
+	//defer res.Body.Close()
+	log.Println(res)
+}
 
 // CreateConnection  Cria connexão
 func CreateConnection() *sqlx.DB {
@@ -45,51 +90,50 @@ func ConnectionDB() string {
 }
 
 //QueryTable Faz a query em uma tabela
-func QueryTable(table string, page uint64, rowsPerPage uint64, data interface{}) error {
-	db := CreateConnection()
-	err := db.Select(data, `SELECT * FROM `+table+` LIMIT ($1) OFFSET ($2)`, rowsPerPage, rowsPerPage*page)
-	db.Close()
+func QueryTable(db *sqlx.DB, table string, selectFields string, page uint64, rowsPerPage uint64, query string, data interface{}) error {
+	err := db.Select(data, `SELECT`+selectFields+` FROM `+table+query+` LIMIT ($1) OFFSET ($2)`, rowsPerPage, rowsPerPage*page)
 	return err
 }
 
 //QueryTotalTable Faz a query em uma tabela para pegar o numero total de itens
-func QueryTotalTable(table string) (total uint64, err error) {
-	db := CreateConnection()
-	err = db.Get(&total, `SELECT COUNT(*) FROM `+table)
-	db.Close()
+func QueryTotalTable(db *sqlx.DB, table string, query string) (total uint64, err error) {
+	err = db.Get(&total, `SELECT COUNT(*) FROM `+table+query)
 	return total, err
 }
 
 //InserIntoTable insere na tabela de acordo com os campos e valores
-func InserIntoTable(table string, fields []string, args ...interface{}) (result sql.Result, err error) {
+func InserIntoTable(db *sqlx.DB, table string, fields []string, args ...interface{}) (result sql.Result, err error) {
 	allfields := strings.Join(fields, ", ")
 	var fieldsd []string
 	for i := 0; i < len(fields); i++ {
 		fieldsd = append(fieldsd, "$"+strconv.FormatInt(int64(i)+1, 16))
 	}
 	itensvalues := strings.Join(fieldsd, ", ")
-	db := CreateConnection()
 	result, err = db.Exec("INSERT INTO "+table+"( "+allfields+" ) VALUES ( "+itensvalues+" )", args...)
-	db.Close()
 	return result, err
 }
 
 //ShowRow mostra um item de alguma tabela
-func ShowRow(table string, row interface{}, field string, args interface{}) (err error) {
-	db := CreateConnection()
+func ShowRow(db *sqlx.DB, table string, row interface{}, field string, args interface{}) (err error) {
 	err = db.Get(row, "SELECT * FROM "+table+" WHERE "+field+"=($1)", args)
-	fmt.Println(row)
-	db.Close()
+	// db.Close()
 	return err
 }
 
-//InserIntoTable insere na tabela de acordo com os campos e valores
-func UpdateRow(table string, fields []string, field string, key interface{}, args ...interface{}) (result sql.Result, err error) {
-	allfields := strings.Join(fields, ",")
-	db := CreateConnection()
-	result, err = db.MustBegin().Exec("INSERT INTO "+table+"( "+allfields+" )", args)
-	db.Close()
+//UpdateRow insere na tabela de acordo com os campos e valores
+func UpdateRow(db *sqlx.DB, table string, fields []string, field string, key interface{}, args ...interface{}) (result sql.Result, err error) {
+	var allfields string
+	for i, v := range fields {
+		allfields += v + "=$" + strconv.Itoa(i+2)
+	}
+	result, err = db.Exec("UPDATE "+table+" SET "+allfields+" WHERE"+field+"=$1", key, args)
 	return result, err
+}
+
+//DeleteRow exclui um item da tabela
+func DeleteRow(db *sqlx.DB, table string, field string, args interface{}) (err error, result sql.Result) {
+	result, err = db.Exec("DELETE FROM "+table+" WHERE "+field+"=($1)", args)
+	return err, result
 }
 
 // //Cria Faz a query em uma tabela

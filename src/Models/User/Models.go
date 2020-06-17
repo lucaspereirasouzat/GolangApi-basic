@@ -18,3 +18,7 @@ type Token struct {
 	token string
 	user  User
 }
+
+func (u User) Relations() string {
+	return ""
+}

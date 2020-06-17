@@ -1,10 +1,18 @@
 package functions
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+//GenerateMD5 transforma a senha para hash md5
+func GenerateMD5(pass string) string {
+	hash := md5.Sum([]byte(pass))
+	return hex.EncodeToString(hash[:])
+}
 
 // GeneratePassword faz o hash da senha
 func GeneratePassword(passwordSend string) (string, error) {
@@ -26,8 +34,8 @@ func ComparePasswords(passwordSend string, hashedPassword []byte) bool {
 	err := bcrypt.CompareHashAndPassword(hashedPassword, password)
 	fmt.Println(err) // nil means it is a match
 	if err != nil {
-		return false
-	} else {
 		return true
+	} else {
+		return false
 	}
 }

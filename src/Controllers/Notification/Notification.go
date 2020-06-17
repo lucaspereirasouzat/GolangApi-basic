@@ -13,7 +13,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-var table = "notification"
+const table = "notification"
 
 /*
 	Faz listagem de todos os tokens de notificação
@@ -23,9 +23,16 @@ func Index(c *gin.Context) {
 
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
 	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
+	search := c.DefaultQuery("search", "")
 
-	err = connection.QueryTable(table, page, rowsPerPage, &notifications)
-	total, err := connection.QueryTotalTable(table)
+	query := ""
+	query = functions.SearchFields(search, []string{"username", "email", "secureLevel"})
+	selectFields := functions.SelectFields([]string{})
+
+	db := connection.CreateConnection()
+
+	err = connection.QueryTable(db, table, selectFields, page, rowsPerPage, "", &notifications)
+	total, err := connection.QueryTotalTable(db, table, query)
 	if err != nil {
 		c.String(400, "%s", err)
 		panic(err)
@@ -44,6 +51,7 @@ func Index(c *gin.Context) {
 	// if err != nil {
 	// 	panic(err)
 	// }
+	db.Close()
 	c.IndentedJSON(http.StatusOK, list)
 }
 

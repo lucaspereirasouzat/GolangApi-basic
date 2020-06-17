@@ -7,25 +7,33 @@ import (
 
 	connection "docker.go/src/Connections"
 	file "docker.go/src/Models/File"
+	"docker.go/src/functions"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
-var table = "file"
+const table = "file"
 
 /*
 	Faz listagem de todos os usuarios
 */
 func Index(c *gin.Context) {
-	db := connection.CreateConnection()
 
 	files := []file.File{}
 
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
 	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
+	search := c.DefaultQuery("search", "")
 
-	err = connection.QueryTable(table, page, rowsPerPage, &files)
-	total, err := connection.QueryTotalTable(table)
+	query := ""
+	query = functions.SearchFields(search, []string{"username", "email", "secureLevel"})
+	selectFields := functions.SelectFields([]string{})
+
+	db := connection.CreateConnection()
+
+	err = connection.QueryTable(db, table, selectFields, page, rowsPerPage, " ", &files)
+	total, err := connection.QueryTotalTable(db, table, query)
+
 	if err != nil {
 		c.String(400, "%s", err)
 		panic(err)

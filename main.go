@@ -25,6 +25,7 @@ func main() {
 	}
 
 	db := connection.CreateConnection()
+	//connection.MongoConnection()
 
 	err = db.Ping()
 	if err != nil {

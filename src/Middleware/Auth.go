@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"log"
-
 	"docker.go/src/functions"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -47,7 +45,8 @@ func Auth(list []string) gin.HandlerFunc {
 			securelevel := usermaped["Securelevel"].(string)
 
 			if !functions.Contains(list, securelevel) {
-				c.JSON(404, "Você não tem permição para fazer isso")
+				c.String(404, "Você não tem permissão para fazer isso")
+				c.Abort()
 				panic(err)
 				return
 			}
@@ -67,10 +66,10 @@ func Auth(list []string) gin.HandlerFunc {
 		c.Set("auth", user)
 		// before request
 
-		c.Next()
+		//c.Next()
 
 		// access the status we are sending
-		status := c.Writer.Status()
-		log.Println(status)
+		// status := c.Writer.Status()
+		// log.Println(status)
 	}
 }

@@ -3,11 +3,15 @@ package user
 import (
 	base64 "encoding/base64"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
+	"os"
+	"os/user"
 	"strconv"
 
 	connection "docker.go/src/Connections"
-	user "docker.go/src/Models/User"
+	userModels "docker.go/src/Models/User"
 	validatores "docker.go/src/Validators"
 	"docker.go/src/functions"
 	"github.com/gin-gonic/gin"
@@ -15,19 +19,35 @@ import (
 	"github.com/vmihailenco/msgpack"
 )
 
-var table = "users"
+const table = "users"
 
-/*
-	Faz listagem de todos os usuarios
-*/
+// Index Faz listagem de todos os usuarios
 func Index(c *gin.Context) {
-	users := []user.User{}
-
+	// Pega a pagina e a quantidade de campos que serão exibidos
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
-	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
+	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("RowsPerPage", "10"), 10, 10)
+	search := c.DefaultQuery("search", "")
 
-	err = connection.QueryTable(table, page, rowsPerPage, &users)
-	total, err := connection.QueryTotalTable(table)
+	query := functions.SearchFields(search, []string{"username", "email", "secureLevel"})
+	selectFields := functions.SelectFields([]string{"id", "username", "email", "securelevel", "created_at"})
+
+	db := connection.CreateConnection()
+
+	users := []userModels.User{}
+	//Faz a query principal que retorna os usuarios com paginação
+	err = connection.QueryTable(
+		db,
+		table,
+		selectFields,
+		page,
+		rowsPerPage,
+		query,
+		&users)
+	//Faz a query que retorna o total de usuarios
+	total, err := connection.QueryTotalTable(db, table, query)
+
+	defer db.Close()
+
 	if err != nil {
 		c.String(400, "%s", err)
 		panic(err)
@@ -37,22 +57,20 @@ func Index(c *gin.Context) {
 		Page        uint64
 		RowsPerPage uint64
 		Total       uint64
-		Table       []user.User
+		Table       []userModels.User
 	}
 
 	list := IndexList{page, rowsPerPage, total, users}
 
+	//	b := functions.ToMSGPACK(list)
 	// b, err := msgpack.Marshal(list)
 	// if err != nil {
 	// 	panic(err)
 	// }
-	c.IndentedJSON(http.StatusOK, list)
+	c.JSON(http.StatusOK, list)
 }
 
-/*
-	Cadastra um novo usuario no sistema
-*/
-
+// Store Cadastra um novo usuario no sistema
 func Store(c *gin.Context) {
 
 	code := c.Request.FormValue("code")
@@ -80,12 +98,11 @@ func Store(c *gin.Context) {
 	// 	return
 	// }
 
-	user.Password, _ = functions.GeneratePassword(user.Password)
-	result, err := connection.InserIntoTable(table, []string{"UserName", "Email", "Password"}, user.Username, user.Email, user.Password)
-	// db := connection.CreateConnection()
-	// tx := db.MustBegin()
+	user.Password = functions.GenerateMD5(user.Password)
+	db := connection.CreateConnection()
 
-	// result, err := tx.Exec("INSERT INTO "+table+" (username, email, password) VALUES ($1, $2, $3)", user.Username, user.Email, user.Password)
+	result, err := connection.InserIntoTable(db, table, []string{"UserName", "Email", "Password"}, user.Username, user.Email, user.Password)
+
 	fmt.Println("result", result, err)
 	// tx.Commit()
 
@@ -94,20 +111,20 @@ func Store(c *gin.Context) {
 		panic(err)
 		fmt.Println(err)
 	}
-	//defer db.Close()
+	defer db.Close()
 	// fmt.Println(err)
 	c.JSON(200, user)
 }
 
-/*
- Procura um novo usuario pelo id
-*/
+// Show Procura um usuario pelo id
 func Show(c *gin.Context) {
 	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
 
-	user := user.User{}
-	err = connection.ShowRow(table, &user, "id", id)
+	user := userModels.User{}
+	db := connection.CreateConnection()
 
+	err = connection.ShowRow(db, table, &user, "id", id)
+	defer db.Close()
 	if err != nil {
 		c.JSON(400, err)
 		return
@@ -116,9 +133,7 @@ func Show(c *gin.Context) {
 	c.JSON(200, user)
 }
 
-/*
- Atualiza um novo usuario pelo id
-*/
+// Update o usuario pelo id
 func Update(c *gin.Context) {
 	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
 	if err != nil {
@@ -132,30 +147,76 @@ func Update(c *gin.Context) {
 		return
 	}
 
-	var user user.User
+	var userMsgPack userModels.User
 
-	err = msgpack.Unmarshal(data, &user)
+	err = msgpack.Unmarshal(data, &userMsgPack)
 	if err != nil {
 		c.JSON(400, err)
 		return
 	}
-	//	connection.InserIntoTable(table)
-	db := connection.CreateConnection()
-	tx := db.MustBegin()
-	tx.MustExec("UPDATE "+table+"  SET username=$2 WHERE id = $1", id, user.Username)
 
+	var fullUser userModels.User
+	db := connection.CreateConnection()
+
+	connection.ShowRow(db, table, &fullUser, "id", id)
+
+	file, _, err := c.Request.FormFile("upload")
+	userid := strconv.Itoa(int(id))
+	filepath := "./tmp/userfile_" + userid + ".png"
+	out, err := os.Create(filepath)
 	if err != nil {
-		c.JSON(400, err)
-		return
+		log.Fatal(err)
+	}
+	defer out.Close()
+	_, err = io.Copy(out, file)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("full", fullUser)
+	if !fullUser.FileId.Valid {
+		result, err := connection.InserIntoTable(db, "file", []string{"path", "userid"}, filepath, userid)
+		fmt.Println(result)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		type FileResult struct {
+			ID uint64
+		}
+
+		var fileres FileResult
+
+		err = connection.ShowRow(db, "file", &fileres, "path", filepath)
+		if err != nil {
+			c.JSON(400, err)
+			return
+		}
+		result, err = connection.UpdateRow(db, table, []string{"username", "file_id"}, "id", fullUser.ID, userMsgPack.Username, fileres.ID)
+		if err != nil {
+			c.JSON(400, err)
+			return
+		}
+		fmt.Printf("%#v\n", userMsgPack)
+
+		c.JSON(200, userMsgPack)
+	} else {
+		fmt.Printf("%#v\n", "errasd")
+		connection.UpdateRow(db, table, []string{"username"}, "id", fullUser.ID, userMsgPack.Username)
+		c.JSON(200, userMsgPack)
+
+		if err != nil {
+			fmt.Println("err", err)
+			return
+		}
 	}
 	defer db.Close()
+	// connection.UpdateRow(table, []string{"username"}, "ID", id, user.Username)
 
-	c.JSON(200, user)
+	c.JSON(200, userMsgPack)
 }
 
-/*
- Deleta o usuario pelo id
-*/
+//Delete o usuario pelo id
 func Delete(c *gin.Context) {
 	db := connection.CreateConnection()
 	user := user.User{}

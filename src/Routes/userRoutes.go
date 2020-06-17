@@ -13,7 +13,7 @@ func UsersRoutes(route *gin.Engine) {
 	auth := route.Group("user")
 	{
 		auth.POST("store", userController.Store)
-		auth.Use(middleware.Auth([]string{"user", "ADM"}))
+		auth.Use(middleware.Auth([]string{"ADM"}))
 		auth.GET("index", userController.Index)
 		auth.GET("show", userController.Show)
 		auth.PUT("update", userController.Update)
