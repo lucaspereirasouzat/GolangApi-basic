@@ -42,14 +42,15 @@ func Index(c *gin.Context) {
 		panic(err)
 	}
 
-	type IndexList struct {
+	list := struct {
 		Page        uint64
 		RowsPerPage uint64
 		Total       uint64
 		Table       []notification.Notification
-	}
-
-	list := IndexList{page, rowsPerPage, total, notifications}
+	}{page,
+		rowsPerPage,
+		total,
+		notifications}
 	// b, err := msgpack.Marshal(list)
 	// if err != nil {
 	// 	panic(err)

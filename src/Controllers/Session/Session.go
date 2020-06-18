@@ -172,3 +172,55 @@ func UpdateMyUser(c *gin.Context) {
 		defer db.Close()
 	}
 }
+
+// RequestNewPassword envia o email
+func RequestNewPassword(c *gin.Context) {
+	email := c.Query("email")
+	user := userModels.User{}
+
+	db := connection.CreateConnection()
+	err := connection.ShowRow(db, "users", &user, "email", email)
+	if err != nil {
+		c.JSON(400, err)
+	}
+
+	item := struct {
+		token  string
+		userID uint64
+	}{"asdfqaw34r321ar3", user.ID}
+
+	db.Get(&item, "INSERT INTO token (token,user_id) values ($1,$2)", item.token, item.userID)
+
+	// send email
+
+	defer db.Close()
+}
+
+// ChangePassword Faz a troca de senha com o token
+func ChangePassword(c *gin.Context) {
+	token := c.Query("token")
+	db := connection.CreateConnection()
+	validToken := struct {
+		token  string
+		userID uint64
+	}{}
+
+	err := connection.ShowRow(db, "token", &validToken, "token", token)
+	if err != nil {
+		c.JSON(400, err)
+		return
+	}
+
+	password := c.Query("password")
+	user := userModels.User{}
+
+	err = db.Get(&user, "UPDATE users SET password = ($2) WHERE id = ($1) RETURNING *", validToken.userID, password)
+
+	if err != nil {
+		c.JSON(400, err)
+		return
+	}
+
+	defer db.Close()
+	c.JSON(200, user)
+}

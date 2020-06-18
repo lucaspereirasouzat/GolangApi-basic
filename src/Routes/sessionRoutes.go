@@ -10,10 +10,11 @@ import (
 func AuthRoutes(route *gin.Engine) {
 	auth := route.Group("auth")
 	{
-		authentication := []string{"user", "ADM"}
 		auth.POST("session", session.Session)
 		auth.POST("logout", session.Logout)
-		auth.Use(middleware.Auth(authentication))
+		auth.POST("newPassword", session.RequestNewPassword)
+		auth.POST("changePassword", session.ChangePassword)
+		auth.Use(middleware.Auth([]string{"user", "ADM"}))
 		auth.PUT("update", session.UpdateMyUser)
 		auth.GET("myUser", session.ShowMyUser)
 		//auth.POST()
