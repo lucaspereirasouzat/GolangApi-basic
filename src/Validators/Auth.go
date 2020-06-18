@@ -2,7 +2,7 @@ package validatores
 
 // Login Faz a validação do login
 type Login struct {
-	User     string `form:"user" json:"user" xml:"user"  binding:"required"`
+	Email    string `form:"email" json:"email" xml:"email"  binding:"required" validate:"required,email"`
 	Password string `form:"password" json:"password" xml:"password" binding:"required"`
 }
 

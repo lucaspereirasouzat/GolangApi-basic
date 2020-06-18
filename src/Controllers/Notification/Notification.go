@@ -1,7 +1,6 @@
 package notification
 
 import (
-	"fmt"
 	"strconv"
 
 	connection "docker.go/src/Connections"
@@ -18,8 +17,6 @@ const table string = "notification"
 	Faz listagem de todos os tokens de notificação
 */
 func Index(c *gin.Context) {
-	notifications := []notification.Notification{}
-
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
 	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
 	search := c.DefaultQuery("search", "")
@@ -30,7 +27,14 @@ func Index(c *gin.Context) {
 
 	db := connection.CreateConnection()
 
+	notifications := []notification.Notification{}
 	err = connection.QueryTable(db, table, selectFields, page, rowsPerPage, "", &notifications)
+
+	if err != nil {
+		c.JSON(400, err)
+		panic(err)
+	}
+
 	total, err := connection.QueryTotalTable(db, table, query)
 
 	if err != nil {
@@ -46,7 +50,6 @@ func Index(c *gin.Context) {
 	}
 
 	list := IndexList{page, rowsPerPage, total, notifications}
-	fmt.Println(list)
 	// b, err := msgpack.Marshal(list)
 	// if err != nil {
 	// 	panic(err)
@@ -66,7 +69,7 @@ func Store(c *gin.Context) {
 	us := UserGet.(userModels.User)
 
 	db := connection.CreateConnection()
-	tx := db.MustBegin()
+	//tx := db.MustBegin()
 
 	var notificationItem = notification.Notification{}
 	err := functions.FromMSGPACK(c.Request.FormValue("code"), &notificationItem)
@@ -90,9 +93,9 @@ func Store(c *gin.Context) {
 	// 	return
 	// }
 
-	tx.MustExec("INSERT INTO "+table+" (tokennotification, user_id) VALUES ($1, $2)", notificationItem.TokenNotification, us.ID)
+	db.Get(&notificationItem, "INSERT INTO "+table+" (tokennotification, user_id) VALUES ($1, $2) RETURNING *", notificationItem.TokenNotification, us.ID)
 
-	tx.Commit()
+	//	tx.Commit()
 
 	defer db.Close()
 
@@ -107,15 +110,12 @@ func Show(c *gin.Context) {
 	id := c.Query("id")
 
 	err := db.Get(&mynotification, "SELECT * FROM "+table+" WHERE tokennotification=($1)", id)
-	db.Close()
-
-	fmt.Println(mynotification)
 
 	if err != nil {
 		c.JSON(400, err)
 		return
 	}
-
+	defer db.Close()
 	c.JSON(200, mynotification)
 }
 
@@ -141,8 +141,6 @@ func Update(c *gin.Context) {
 		return
 	}
 	defer db.Close()
-
-	fmt.Printf("%#v\n", notificationItem)
 
 	c.JSON(200, notificationItem)
 }

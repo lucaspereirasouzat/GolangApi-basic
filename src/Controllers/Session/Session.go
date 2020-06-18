@@ -2,9 +2,7 @@ package session
 
 import (
 	"encoding/base64"
-	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -13,47 +11,33 @@ import (
 	userModels "docker.go/src/Models/User"
 	validators "docker.go/src/Validators"
 	"docker.go/src/functions"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/vmihailenco/msgpack"
 )
 
-type Login struct {
-	Email    string `validate:"required,email"`
-	Password string `validate:"required"`
-}
-
-type Token struct {
-	User userModels.User
-	jwt.StandardClaims
-}
-
 // Session Faz login do usuario
 func Session(c *gin.Context) {
-	var user Login
+	var user validators.Login
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
 		return
 	}
-
 	user.Password = functions.GenerateMD5(user.Password)
-	var Fulluser userModels.User
 
 	db := connection.CreateConnection()
 
+	var Fulluser userModels.User
 	err := db.Get(&Fulluser, "SELECT * FROM users WHERE email=($1) AND password=($2)", user.Email, user.Password)
 
 	defer db.Close()
 
 	if err != nil {
+		var list [1]validators.Error
 
-		myerror := validators.Error{
+		list[0] = validators.Error{
 			Field:   "email",
 			Message: "E-mail ou Senha inválidados",
 		}
-
-		var list [1]validators.Error
-		list[0] = myerror
 
 		type Errors struct {
 			Errors [1]validators.Error
@@ -99,69 +83,70 @@ func Logout(c *gin.Context) {
 	c.JSON(200, "Concluido")
 }
 
-/*
- Mostra os dados do proprio usuario do auth
-*/
+// ShowMyUser Mostra os dados do proprio usuario
 func ShowMyUser(c *gin.Context) {
 	var users, _ = c.Get("auth")
 	c.JSON(200, users)
 }
 
-/*
- Atualiza um novo usuario pelo id
-*/
+// UpdateMyUser atualiza os dados do proprio usuario
 func UpdateMyUser(c *gin.Context) {
-
+	// Dados do prorio usuario do auth
 	UserGet, _ := c.Get("auth")
-	us := UserGet.(userModels.User)
+	myUser := UserGet.(userModels.User)
 
 	data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
 	if err != nil {
-		panic(err)
+		c.JSON(400, err)
+		return
 	}
 
+	// Cria o arquivo
 	file, _, err := c.Request.FormFile("upload")
-	userid := strconv.Itoa(int(us.ID))
+
+	// Converte o id de int para string
+	userid := strconv.Itoa(int(myUser.ID))
 	filepath := "./tmp/userfile_" + userid + ".png"
 	out, err := os.Create(filepath)
 
 	if err != nil {
-		log.Fatal(err)
+		c.JSON(400, err)
+		return
 	}
 
 	defer out.Close()
 	_, err = io.Copy(out, file)
 	if err != nil {
-		log.Fatal(err)
+		c.JSON(400, err)
+		return
 	}
 
-	if !us.FileId.Valid {
+	if !myUser.FileId.Valid {
 		db := connection.CreateConnection()
 
-		var fileId int
-		err := db.QueryRow("INSERT INTO file (path, user_id) VALUES ($1, $2) RETURNING id", filepath, userid).Scan(&fileId)
+		var fileID int
+		err := db.QueryRow("INSERT INTO file (path, user_id) VALUES ($1, $2) RETURNING id", filepath, userid).Scan(&fileID)
 
 		if err != nil {
-			fmt.Println(err)
+			c.JSON(400, err)
 			return
 		}
 
 		var user userModels.User
 
 		err = msgpack.Unmarshal(data, &user)
+
 		if err != nil {
-			fmt.Println("error in conversion")
+			c.JSON(400, err)
 			panic(err)
 		}
 
-		err = db.Get(&user, "UPDATE users SET username = ($2) file_id=($3)  WHERE id = ($1) RETURNING *", us.ID, user.Username, fileId)
+		err = db.Get(&user, "UPDATE users SET username = ($2) file_id=($3)  WHERE id = ($1) RETURNING *", myUser.ID, user.Username, fileID)
 
 		if err != nil {
-			fmt.Println("err", err)
+			c.JSON(400, err)
 			return
 		}
-
-		fmt.Printf("%#v\n", user)
 
 		c.JSON(200, user)
 
@@ -171,20 +156,19 @@ func UpdateMyUser(c *gin.Context) {
 
 		err = msgpack.Unmarshal(data, &user)
 		if err != nil {
-			fmt.Println("error in conversion")
+			c.JSON(400, err)
 			panic(err)
 		}
 
 		db := connection.CreateConnection()
-		err = db.Get(&user, "UPDATE users SET username = ($2) WHERE id = ($1) RETURNING *", us.ID, user.Username)
+		err = db.Get(&user, "UPDATE users SET username = ($2) WHERE id = ($1) RETURNING *", myUser.ID, user.Username)
 
 		if err != nil {
-			fmt.Println(err)
+			c.JSON(400, err)
 			return
 		}
 
 		c.JSON(200, user)
 		defer db.Close()
 	}
-
 }

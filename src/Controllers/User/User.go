@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/user"
 	"strconv"
@@ -52,25 +51,27 @@ func Index(c *gin.Context) {
 	defer db.Close()
 
 	if err != nil {
-		c.String(400, "%s", err)
+		c.JSON(400, err)
 		panic(err)
 	}
 
-	type IndexList struct {
+	//models := rmfield(userModels.User, "Password")
+
+	list := struct {
 		Page        uint64
 		RowsPerPage uint64
 		Total       uint64
 		Table       []userModels.User
-	}
+	}{page, rowsPerPage, total, users}
 
-	list := IndexList{page, rowsPerPage, total, users}
+	//IndexList
 
 	//	b := functions.ToMSGPACK(list)
 	// b, err := msgpack.Marshal(list)
 	// if err != nil {
 	// 	panic(err)
 	// }
-	c.JSON(http.StatusOK, list)
+	c.JSON(200, list)
 }
 
 // Store Cadastra um novo usuario no sistema
@@ -90,7 +91,7 @@ func Store(c *gin.Context) {
 	err = msgpack.Unmarshal(data, &user)
 
 	if err != nil {
-		c.String(400, "%s", err)
+		c.JSON(400, err)
 		panic(err)
 	}
 	// hasError, listError := validatores.Validate(user)
@@ -107,16 +108,11 @@ func Store(c *gin.Context) {
 
 	err = db.Get(&user, "INSERT INTO "+table+" (username,email,password) VALUES ($1,$2,$3)  RETURNING *", user.Username, user.Email, user.Password)
 
-	fmt.Println("result", user)
-	// tx.Commit()
-
 	if err != nil {
 		c.String(400, "%s", err)
 		panic(err)
-		fmt.Println(err)
 	}
 	defer db.Close()
-	// fmt.Println(err)
 	c.JSON(200, user)
 }
 
