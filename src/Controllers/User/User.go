@@ -19,7 +19,7 @@ import (
 	"github.com/vmihailenco/msgpack"
 )
 
-const table = "users"
+const table string = "users"
 
 // Index Faz listagem de todos os usuarios
 func Index(c *gin.Context) {
@@ -105,7 +105,7 @@ func Store(c *gin.Context) {
 
 	db := connection.CreateConnection()
 
-	err = db.Get(&user, "INSERT INTO"+table+"(username,email,password) VALUES ($1,$2,$3)  RETURNING *", user.Username, user.Email, user.Password)
+	err = db.Get(&user, "INSERT INTO "+table+" (username,email,password) VALUES ($1,$2,$3)  RETURNING *", user.Username, user.Email, user.Password)
 
 	fmt.Println("result", user)
 	// tx.Commit()
@@ -145,21 +145,9 @@ func Update(c *gin.Context) {
 		return
 	}
 
-	data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
-	if err != nil {
-		c.JSON(400, err)
-		return
-	}
-
 	var userMsgPack userModels.User
 
-	err = msgpack.Unmarshal(data, &userMsgPack)
-	if err != nil {
-		c.JSON(400, err)
-		return
-	}
-
-	fmt.Println("first", userMsgPack)
+	functions.FromMSGPACK(c.Request.FormValue("code"), &userMsgPack)
 
 	var fullUser userModels.User
 	db := connection.CreateConnection()
@@ -173,65 +161,42 @@ func Update(c *gin.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//	defer out.Close()
+	defer out.Close()
 	_, err = io.Copy(out, file)
 	if err != nil {
 		log.Fatal(err)
 	}
-	//fmt.Println("full", fullUser)
+
 	if !fullUser.FileId.Valid {
-		result, err := connection.InserIntoTable(db, "file", []string{"path", "userid"}, filepath, userid)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		db := connection.CreateConnection()
 
-		type FileResult struct {
-			ID uint64
-		}
+		var fileID int
+		err := db.QueryRow("INSERT INTO file (path, user_id) VALUES ($1, $2) RETURNING id", filepath, userid).Scan(&fileID)
 
-		var fileres FileResult
-
-		err = connection.ShowRow(db, "file", &fileres, "path", filepath)
-		if err != nil {
-			c.JSON(400, err)
-			return
-		}
-		result, err = connection.UpdateRow(db, table, []string{"username", "file_id"}, "id", fullUser.ID, userMsgPack.Username, fileres.ID)
 		if err != nil {
 			c.JSON(400, err)
 			return
 		}
 
-		id, err := result.LastInsertId()
+		err = db.Get(&userMsgPack, "UPDATE users SET username = ($2) file_id=($3)  WHERE id = ($1) RETURNING *", id, fullUser.Username, fileID)
 
-		err = connection.ShowRow(db, table, &userMsgPack, "id", id)
 		if err != nil {
-			fmt.Println("err", err)
+			c.JSON(400, err)
 			return
 		}
+
 		c.JSON(200, userMsgPack)
 	} else {
-		result, err := connection.UpdateRow(db, table, []string{"username"}, "id", fullUser.ID, userMsgPack.Username)
-		id, err := result.LastInsertId()
-		fmt.Println("lastUser", id)
-		err = connection.ShowRow(db, table, &userMsgPack, "id", id)
-		fmt.Println("users msg", userMsgPack)
+		err = db.Get(&userMsgPack, "UPDATE users SET username = ($2) WHERE id = ($1) RETURNING *", id, userMsgPack.Username)
+
 		if err != nil {
-			fmt.Println("err", err)
+			c.JSON(400, err)
 			return
 		}
 		c.JSON(200, userMsgPack)
 
-		if err != nil {
-			fmt.Println("err", err)
-			return
-		}
 	}
 	defer db.Close()
-	// connection.UpdateRow(table, []string{"username"}, "ID", id, user.Username)
-
-	c.JSON(200, userMsgPack)
 }
 
 //Delete o usuario pelo id

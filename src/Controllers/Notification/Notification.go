@@ -2,7 +2,6 @@ package notification
 
 import (
 	"fmt"
-	"net/http"
 	"strconv"
 
 	connection "docker.go/src/Connections"
@@ -13,7 +12,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-const table = "notification"
+const table string = "notification"
 
 /*
 	Faz listagem de todos os tokens de notificação
@@ -33,8 +32,9 @@ func Index(c *gin.Context) {
 
 	err = connection.QueryTable(db, table, selectFields, page, rowsPerPage, "", &notifications)
 	total, err := connection.QueryTotalTable(db, table, query)
+
 	if err != nil {
-		c.String(400, "%s", err)
+		c.JSON(400, err)
 		panic(err)
 	}
 
@@ -51,8 +51,8 @@ func Index(c *gin.Context) {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	db.Close()
-	c.IndentedJSON(http.StatusOK, list)
+	defer db.Close()
+	c.IndentedJSON(200, list)
 }
 
 var validate *validator.Validate
@@ -72,6 +72,7 @@ func Store(c *gin.Context) {
 	err := functions.FromMSGPACK(c.Request.FormValue("code"), &notificationItem)
 
 	if err != nil {
+		c.JSON(400, err)
 		panic(err)
 	}
 	// data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
@@ -93,14 +94,12 @@ func Store(c *gin.Context) {
 
 	tx.Commit()
 
-	db.Close()
+	defer db.Close()
 
 	c.JSON(200, notificationItem)
 }
 
-// /*
-//  Procura um novo usuario pelo id
-// */
+// Show Mostra um item notificação
 func Show(c *gin.Context) {
 	db := connection.CreateConnection()
 	mynotification := notification.Notification{}
@@ -113,7 +112,7 @@ func Show(c *gin.Context) {
 	fmt.Println(mynotification)
 
 	if err != nil {
-		fmt.Println(err)
+		c.JSON(400, err)
 		return
 	}
 
@@ -125,7 +124,6 @@ func Show(c *gin.Context) {
 */
 func Update(c *gin.Context) {
 	db := connection.CreateConnection()
-	//user := user.User{}
 
 	id := c.Query("id")
 
@@ -133,16 +131,16 @@ func Update(c *gin.Context) {
 
 	err := functions.FromMSGPACK(c.Request.FormValue("code"), &notificationItem)
 	if err != nil {
-		fmt.Println("error in conversion")
+		c.JSON(400, err)
 		panic(err)
 	}
 
 	err = db.Get(&notificationItem, "UPDATE "+table+" SET tokennotification = ($2) WHERE tokennotification = ($1)", id, notificationItem.TokenNotification)
 	if err != nil {
-		fmt.Println(err)
+		c.JSON(400, err)
 		return
 	}
-	db.Close()
+	defer db.Close()
 
 	fmt.Printf("%#v\n", notificationItem)
 
@@ -157,14 +155,14 @@ func Delete(c *gin.Context) {
 
 	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
 	if err != nil {
-		fmt.Println(err)
+		c.JSON(400, err)
 		return
 	}
 	db.MustExec("DELETE FROM "+table+" WHERE tokennotification = ($1)", id)
-	db.Close()
+	defer db.Close()
 
 	if err != nil {
-		fmt.Println(err)
+		c.JSON(400, err)
 		return
 	}
 

@@ -124,9 +124,11 @@ func UpdateMyUser(c *gin.Context) {
 	userid := strconv.Itoa(int(us.ID))
 	filepath := "./tmp/userfile_" + userid + ".png"
 	out, err := os.Create(filepath)
+
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer out.Close()
 	_, err = io.Copy(out, file)
 	if err != nil {
@@ -172,8 +174,8 @@ func UpdateMyUser(c *gin.Context) {
 			fmt.Println("error in conversion")
 			panic(err)
 		}
-		db := connection.CreateConnection()
 
+		db := connection.CreateConnection()
 		err = db.Get(&user, "UPDATE users SET username = ($2) WHERE id = ($1) RETURNING *", us.ID, user.Username)
 
 		if err != nil {
