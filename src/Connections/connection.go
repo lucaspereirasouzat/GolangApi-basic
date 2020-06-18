@@ -57,10 +57,13 @@ func Elastic() {
 	log.Println(res)
 }
 
+// ConnectionResult String result connection
+var ConnectionResult string = ""
+
 // CreateConnection  Cria connexão
 func CreateConnection() *sqlx.DB {
 	// faz a junção de string para conectar ao banco
-	db, err := sqlx.Open("postgres", ConnectionDB())
+	db, err := sqlx.Open("postgres", ConnectionResult)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,7 +71,7 @@ func CreateConnection() *sqlx.DB {
 }
 
 //ConnectionDB Cria a string de connexão
-func ConnectionDB() string {
+func ConnectionDB() {
 	// carregar env
 	err := godotenv.Load()
 	if err != nil {
@@ -84,9 +87,11 @@ func ConnectionDB() string {
 		log.Fatal("Erro ao carregar o .env")
 	}
 
-	return fmt.Sprintf("host=%s port=%d user=%s "+
+	ConnectionResult = fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		os.Getenv("DB_HOST"), portN, os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
+
+	//	return ConnectionResult
 }
 
 //QueryTable Faz a query em uma tabela
@@ -116,7 +121,6 @@ func InserIntoTable(db *sqlx.DB, table string, fields []string, args ...interfac
 //ShowRow mostra um item de alguma tabela
 func ShowRow(db *sqlx.DB, table string, row interface{}, field string, args interface{}) (err error) {
 	err = db.Get(row, "SELECT * FROM "+table+" WHERE "+field+"=($1)", args)
-	// db.Close()
 	return err
 }
 

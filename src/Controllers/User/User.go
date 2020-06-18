@@ -44,7 +44,10 @@ func Index(c *gin.Context) {
 		query,
 		&users)
 	//Faz a query que retorna o total de usuarios
-	total, err := connection.QueryTotalTable(db, table, query)
+	total, err := connection.QueryTotalTable(
+		db,
+		table,
+		query)
 
 	defer db.Close()
 
@@ -99,11 +102,12 @@ func Store(c *gin.Context) {
 	// }
 
 	user.Password = functions.GenerateMD5(user.Password)
+
 	db := connection.CreateConnection()
 
-	result, err := connection.InserIntoTable(db, table, []string{"UserName", "Email", "Password"}, user.Username, user.Email, user.Password)
+	err = db.Get(&user, "INSERT INTO"+table+"(username,email,password) VALUES ($1,$2,$3)  RETURNING *", user.Username, user.Email, user.Password)
 
-	fmt.Println("result", result, err)
+	fmt.Println("result", user)
 	// tx.Commit()
 
 	if err != nil {
@@ -155,6 +159,8 @@ func Update(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("first", userMsgPack)
+
 	var fullUser userModels.User
 	db := connection.CreateConnection()
 
@@ -167,15 +173,14 @@ func Update(c *gin.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer out.Close()
+	//	defer out.Close()
 	_, err = io.Copy(out, file)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("full", fullUser)
+	//fmt.Println("full", fullUser)
 	if !fullUser.FileId.Valid {
 		result, err := connection.InserIntoTable(db, "file", []string{"path", "userid"}, filepath, userid)
-		fmt.Println(result)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -197,12 +202,25 @@ func Update(c *gin.Context) {
 			c.JSON(400, err)
 			return
 		}
-		fmt.Printf("%#v\n", userMsgPack)
 
+		id, err := result.LastInsertId()
+
+		err = connection.ShowRow(db, table, &userMsgPack, "id", id)
+		if err != nil {
+			fmt.Println("err", err)
+			return
+		}
 		c.JSON(200, userMsgPack)
 	} else {
-		fmt.Printf("%#v\n", "errasd")
-		connection.UpdateRow(db, table, []string{"username"}, "id", fullUser.ID, userMsgPack.Username)
+		result, err := connection.UpdateRow(db, table, []string{"username"}, "id", fullUser.ID, userMsgPack.Username)
+		id, err := result.LastInsertId()
+		fmt.Println("lastUser", id)
+		err = connection.ShowRow(db, table, &userMsgPack, "id", id)
+		fmt.Println("users msg", userMsgPack)
+		if err != nil {
+			fmt.Println("err", err)
+			return
+		}
 		c.JSON(200, userMsgPack)
 
 		if err != nil {

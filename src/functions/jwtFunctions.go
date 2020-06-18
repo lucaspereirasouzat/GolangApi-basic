@@ -20,7 +20,6 @@ type Token struct {
 // GenerateToken Cria um novo token de usuario
 func GenerateToken(user user.User) (string, error) {
 	expirationTime := time.Now().Add(5 * time.Minute)
-	fmt.Println(user)
 	claims := &Token{
 		User: user,
 		StandardClaims: jwt.StandardClaims{

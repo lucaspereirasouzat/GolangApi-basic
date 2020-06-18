@@ -23,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Erro ao carregar o .env")
 	}
-
+	connection.ConnectionDB()
 	db := connection.CreateConnection()
 	//connection.MongoConnection()
 
