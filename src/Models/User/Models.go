@@ -15,8 +15,10 @@ type User struct {
 }
 
 type Token struct {
-	token string
-	user  User
+	token     string
+	isRevoked bool
+	UserID    sql.NullInt64 `db:"user_id"`
+	CreatedAt time.Time     `db:"created_at"`
 }
 
 func (u User) Relations() string {

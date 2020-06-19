@@ -2,6 +2,7 @@ package session
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -175,47 +176,55 @@ func UpdateMyUser(c *gin.Context) {
 
 // RequestNewPassword envia o email
 func RequestNewPassword(c *gin.Context) {
-	email := c.Query("email")
+	email := c.Request.FormValue("email")
 	user := userModels.User{}
 
 	db := connection.CreateConnection()
 	err := connection.ShowRow(db, "users", &user, "email", email)
+
 	if err != nil {
+		fmt.Println(err)
 		c.JSON(400, err)
+		return
 	}
 
 	item := struct {
 		token  string
 		userID uint64
-	}{"asdfqaw34r321ar3", user.ID}
+	}{functions.RandStringBytesRmndr(30), user.ID}
 
-	db.Get(&item, "INSERT INTO token (token,user_id) values ($1,$2)", item.token, item.userID)
+	_, err = db.Exec("INSERT INTO token (token,user_id) values ($1,$2)", item.token, item.userID)
 
-	// send email
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(400, err)
+		return
+	}
 
 	defer db.Close()
+
+	// send email
+	c.JSON(200, item.token)
 }
 
 // ChangePassword Faz a troca de senha com o token
 func ChangePassword(c *gin.Context) {
-	token := c.Query("token")
+	token := c.Request.FormValue("token")
 	db := connection.CreateConnection()
-	validToken := struct {
-		token  string
-		userID uint64
-	}{}
 
-	err := connection.ShowRow(db, "token", &validToken, "token", token)
+	var userID int
+	err := db.Get(&userID, "UPDATE token SET is_revoked = $2 WHERE token = $1 RETURNING user_id", token, true)
+
 	if err != nil {
 		c.JSON(400, err)
 		return
 	}
 
-	password := c.Query("password")
+	password := functions.GenerateMD5(c.Request.FormValue("password"))
+
 	user := userModels.User{}
 
-	err = db.Get(&user, "UPDATE users SET password = ($2) WHERE id = ($1) RETURNING *", validToken.userID, password)
-
+	err = db.Get(&user, "UPDATE users SET password = ($2) WHERE id = ($1) RETURNING *", userID, password)
 	if err != nil {
 		c.JSON(400, err)
 		return
