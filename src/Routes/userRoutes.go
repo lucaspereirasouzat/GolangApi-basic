@@ -9,7 +9,6 @@ import (
 
 // UsersRoutes rotas dos usuarios
 func UsersRoutes(route *gin.Engine) {
-	//var register validatores.Register
 	auth := route.Group("user")
 	{
 		auth.POST("store", userController.Store)

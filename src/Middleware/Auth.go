@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"time"
+
 	"docker.go/src/functions"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -58,8 +60,7 @@ func Auth(list []string) gin.HandlerFunc {
 			fileResult := usermaped["FileId"].(map[string]interface{})
 			user.FileId.Valid = fileResult["Valid"].(bool)
 			user.FileId.Int64 = int64(fileResult["Int64"].(float64))
-			//fmt.Println(usermaped["CreatedAt"].(string))
-			//user.CreatedAt, err = time.Parse("0001-01-01T00:00:00Z", usermaped["CreatedAt"].(string))
+			user.CreatedAt, err = time.Parse(time.RFC3339, usermaped["CreatedAt"].(string))
 		}
 		//fmt.Println(user)
 

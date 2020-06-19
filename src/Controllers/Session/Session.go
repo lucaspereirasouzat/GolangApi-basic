@@ -79,7 +79,7 @@ func Logout(c *gin.Context) {
 	// Save in database the token
 	tx.MustExec("DELETE FROM token WHERE token=($1); ", h.Bearer)
 	tx.Commit()
-	db.Close()
+	defer db.Close()
 
 	c.JSON(200, "Concluido")
 }
