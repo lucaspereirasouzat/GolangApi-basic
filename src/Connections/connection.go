@@ -1,45 +1,122 @@
 package connection
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/elastic/go-elasticsearch/v6"
+	redis "github.com/go-redis/redis"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var clientRedis *redis.Client
+var clientMongo *mongo.Client
+
+type Log struct {
+	Time    string
+	Latency string
+	Status  int
+	Url     string
+	User    interface{}
+	Method  string
+}
+
+//RedisConnection faz a coneção com o redis
+func RedisConnection() *redis.Client {
+	client := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6380",
+		Password: "",
+		DB:       0,
+	})
+	fmt.Println("redis connection")
+	clientRedis = client
+	return client
+}
+
+// SetItemRedis Salva no Redis
+func SetItemRedis(key string, value interface{}) error {
+	err := clientRedis.Set(key, value, 0).Err()
+	fmt.Println("error", err)
+	return err
+}
+
+// GetItemRedis pega o item no redis
+func GetItemRedis(key string) (string, error) {
+	val, err := clientRedis.Get(key).Result()
+	fmt.Println("value", val)
+	return val, err
+}
+
 func MongoConnection() {
-	// client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	// err = client.Ping(ctx, readpref.Primary())
-	// collection := client.Database("testing").Collection("numbers")
-	// fmt.Println("entrou no mongo db")
-	// fmt.Println(collection)
-	// ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
-	// res, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
-	// id := res.InsertedID
-	//fmt.Println(id)
+	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false"))
+	if err != nil {
+		fmt.Println("cliente mongo", err)
+	}
+	clientMongo = client
+}
 
-	// es, err := elasticsearch.NewDefaultClient()
-	// if err != nil {
-	// 	log.Fatalf("Error creating the client: %s", err)
-	// }
+func InsertMongoDB(db string, cole string, value Log) *mongo.InsertOneResult {
+	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
+	err := clientMongo.Connect(ctx)
+	if err != nil {
+		fmt.Println("error mongo", err)
+	}
+	// result, err := json.Marshal(value)
+	// resultString := string(result)
 
-	// res, err := es.Info()
-	// if err != nil {
-	// 	log.Fatalf("Error getting response: %s", err)
-	// }
+	// //filter := bson.D{{"hello", "world"}}
+	// fmt.Println(value)
+	// fmt.Println(result)
+	// //fmt.Println(filter)
+	// fmt.Println("result String", resultString)
+	collection := clientMongo.Database(db).Collection(cole)
 
-	// //defer res.Body.Close()
-	// log.Println(res)
+	res, err := collection.InsertOne(context.Background(), bson.M{
+		"time":    value.Time,
+		"latency": value.Latency,
+		"status":  value.Status,
+		"url":     value.Url,
+		"user":    value.User,
+		"method":  value.Method})
+	if err != nil {
+		fmt.Println(res, err)
+	}
+	return res
+}
+func ShowMongoDB() {
+
+}
+
+func SelectMongoDB(db string, cole string, value interface{}) bson.M {
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	collection := clientMongo.Database(db).Collection(cole)
+	cur, err := collection.Find(ctx, bson.D{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cur.Close(ctx)
+	var result bson.M
+	for cur.Next(ctx) {
+		err := cur.Decode(&result)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// do something with result....
+	}
+	if err := cur.Err(); err != nil {
+		log.Fatal(err)
+	}
+	return result
 }
 
 func Elastic() {

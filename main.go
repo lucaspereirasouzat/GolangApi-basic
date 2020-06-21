@@ -7,6 +7,7 @@ import (
 
 	commands "docker.go/src/Commands"
 	connection "docker.go/src/Connections"
+	middleware "docker.go/src/Middleware"
 	routes "docker.go/src/Routes"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -24,8 +25,10 @@ func main() {
 		log.Fatal("Erro ao carregar o .env")
 	}
 	connection.ConnectionDB()
+	connection.RedisConnection()
+	connection.MongoConnection()
+
 	db := connection.CreateConnection()
-	//connection.MongoConnection()
 
 	err = db.Ping()
 	if err != nil {
@@ -41,6 +44,8 @@ func main() {
 	fmt.Println("Successfully connected!")
 
 	router := gin.Default()
+	router.Use(middleware.Logger())
+
 	// ligar as rotas para o gin
 	routes.UsersRoutes(router)
 	routes.AuthRoutes(router)

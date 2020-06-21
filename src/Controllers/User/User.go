@@ -2,6 +2,7 @@ package user
 
 import (
 	base64 "encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -18,15 +19,14 @@ import (
 	"github.com/vmihailenco/msgpack"
 )
 
-const table string = "users"
+type Lista struct {
+	Page        uint64
+	RowsPerPage uint64
+	Total       uint64
+	Table       []userModels.User
+}
 
-// Index Faz listagem de todos os usuarios
-func Index(c *gin.Context) {
-	// Pega a pagina e a quantidade de campos que serão exibidos
-	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
-	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("RowsPerPage", "10"), 10, 10)
-	search := c.DefaultQuery("search", "")
-
+func callTable(page uint64, rowsPerPage uint64, search string) (list Lista, err error) {
 	query := functions.SearchFields(search, []string{"username", "email", "secureLevel"})
 	selectFields := functions.SelectFields([]string{"id", "username", "email", "securelevel", "created_at"})
 
@@ -50,27 +50,70 @@ func Index(c *gin.Context) {
 
 	defer db.Close()
 
-	if err != nil {
-		c.JSON(400, err)
-		panic(err)
-	}
+	// if err != nil {
+	// 	c.JSON(400, err)
+	// 	panic(err)
+	// }
 
 	//models := rmfield(userModels.User, "Password")
 
-	list := struct {
-		Page        uint64
-		RowsPerPage uint64
-		Total       uint64
-		Table       []userModels.User
-	}{page, rowsPerPage, total, users}
+	//var list Lista
 
-	//IndexList
+	list.Page = page
+	list.RowsPerPage = rowsPerPage
+	list.Total = total
+	list.Table = users
 
-	//	b := functions.ToMSGPACK(list)
-	// b, err := msgpack.Marshal(list)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	return list, nil
+}
+
+const table string = "users"
+
+// Index Faz listagem de todos os usuarios
+func Index(c *gin.Context) {
+	// Pega a pagina e a quantidade de campos que serão exibidos
+	page, _ := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
+	rowsPerPage, _ := strconv.ParseUint(c.DefaultQuery("RowsPerPage", "50"), 10, 10)
+	search := c.DefaultQuery("search", "")
+	var list Lista
+	//connection.SetItemRedis()
+	if page == 0 && rowsPerPage == 50 && search == "" {
+		result, err := connection.GetItemRedis("listUsers")
+		if err != nil {
+			list, err = callTable(page, rowsPerPage, search)
+
+			if err != nil {
+				c.JSON(400, err)
+				panic(err)
+			}
+
+			go func() {
+				json, err := json.Marshal(list)
+				if err != nil {
+					//return nil, err
+				}
+				newJson := string(json)
+				connection.SetItemRedis("listUsers", newJson)
+			}()
+
+		} else {
+			err := json.Unmarshal([]byte(result), &list)
+			if err != nil {
+				c.JSON(400, err)
+				panic(err)
+			}
+		}
+	} else {
+		var err error
+		list, err = callTable(page, rowsPerPage, search)
+
+		if err != nil {
+			c.JSON(400, err)
+			panic(err)
+		}
+	}
+
+	//fmt.Println(list)
 	c.JSON(200, list)
 }
 
@@ -113,6 +156,18 @@ func Store(c *gin.Context) {
 		panic(err)
 	}
 	defer db.Close()
+
+	go func() {
+		list, err := callTable(0, 50, "")
+
+		json, err := json.Marshal(list)
+		if err != nil {
+			//return nil, err
+		}
+		newJson := string(json)
+		connection.SetItemRedis("listUsers", newJson)
+	}()
+
 	c.JSON(200, user)
 }
 
@@ -192,6 +247,17 @@ func Update(c *gin.Context) {
 		c.JSON(200, userMsgPack)
 
 	}
+
+	go func() {
+		list, err := callTable(0, 50, "")
+
+		json, err := json.Marshal(list)
+		if err != nil {
+			//return nil, err
+		}
+		newJson := string(json)
+		connection.SetItemRedis("listUsers", newJson)
+	}()
 	defer db.Close()
 }
 

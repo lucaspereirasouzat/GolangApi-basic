@@ -22,36 +22,54 @@ services:
   #     # - redis
   #     - postgres
   redis:
-    image: "redis:alpine"
-    # elasticsearch:
-    #   image: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
-    #   ports:
-    #     - 9200:9200
-    #   volumes:
-    #     - ./share/elasticsearch/data:/usr/share/elasticsearch/data
-    #     - ./share/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
-    #   networks: [elastic]
-    #   environment:
-    #     - discovery.type=single-node
+    image: redis
+    container_name: cache
+    ports:
+      - 6380:6379
+    expose:
+      - 6379
+  # es01:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+  #   container_name: es01
+  #   environment:
+  #     - node.name=es01
+  #     - cluster.name=es-docker-cluster
+  #     - discovery.seed_hosts=es02,es03
+  #     - cluster.initial_master_nodes=es01,es02,es03
+  #     - bootstrap.memory_lock=true
+  #     - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+  #   ulimits:
+  #     memlock:
+  #       soft: -1
+  #       hard: -1
+  #   volumes:
+  #     - data01:/usr/share/elasticsearch/data
+  #   ports:
+  #     - 9200:9200
+  #   networks:
+  #     - elastic
+  # networks:
+  #   elastic:
+  #     driver: bridge
   #   kibana:
   #     image: docker.elastic.co/kibana/kibana-oss:6.3.2
   #     ports:
   #       - 5601:5601
   #     networks: [elastic]
-  # networks:
-  #   elastic:
   mongo:
     image: mongo
     restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - 27017:27017
+    # environment:
+    #   MONGO_INITDB_ROOT_USERNAME: root
+    #   MONGO_INITDB_ROOT_PASSWORD: example
 
   mongo-express:
     image: mongo-express
     restart: always
     ports:
-      - 8089:8081
+      - 8081:8081
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
       ME_CONFIG_MONGODB_ADMINPASSWORD: example
