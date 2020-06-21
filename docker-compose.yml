@@ -1,0 +1,75 @@
+version: "3"
+services:
+  postgres:
+    restart: always
+    image: "kartoza/postgis:latest"
+    volumes:
+      - ./data/postgre/db:/data/db
+    ports:
+      - "5430:5432"
+    environment:
+      - POSTGRES_USER=feedthebeast
+      - POSTGRES_PASSWORD=6c5b3190cd6772bcaba1d11a21a70192
+      - POSTGRES_DB=restartservice
+      - DB_HOST=postgres
+  # web:
+  #   build: .
+  #   ports:
+  #     - "5430:5432"
+  #     # - "2020:2020"
+  # - "80:3333"
+  #   depends_on:
+  #     # - redis
+  #     - postgres
+  redis:
+    image: redis
+    container_name: cache
+    ports:
+      - 6380:6379
+    expose:
+      - 6379
+  # es01:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+  #   container_name: es01
+  #   environment:
+  #     - node.name=es01
+  #     - cluster.name=es-docker-cluster
+  #     - discovery.seed_hosts=es02,es03
+  #     - cluster.initial_master_nodes=es01,es02,es03
+  #     - bootstrap.memory_lock=true
+  #     - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+  #   ulimits:
+  #     memlock:
+  #       soft: -1
+  #       hard: -1
+  #   volumes:
+  #     - data01:/usr/share/elasticsearch/data
+  #   ports:
+  #     - 9200:9200
+  #   networks:
+  #     - elastic
+  # networks:
+  #   elastic:
+  #     driver: bridge
+  #   kibana:
+  #     image: docker.elastic.co/kibana/kibana-oss:6.3.2
+  #     ports:
+  #       - 5601:5601
+  #     networks: [elastic]
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    # environment:
+    #   MONGO_INITDB_ROOT_USERNAME: root
+    #   MONGO_INITDB_ROOT_PASSWORD: example
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
