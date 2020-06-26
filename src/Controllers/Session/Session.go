@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"strconv"
 
@@ -19,14 +18,17 @@ import (
 // Session Faz login do usuario
 func Session(c *gin.Context) {
 	var user validators.Login
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
-		return
-	}
+	user.Email = c.Request.FormValue("email")
+	user.Password = c.Request.FormValue("password")
+	// if err := c.ShouldBindQuery(&user); err != nil {
+	// 	c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
+	// 	return
+	// }
+	fmt.Println("user", user)
 	user.Password = functions.GenerateMD5(user.Password)
+	fmt.Println("user", user)
 
 	db := connection.CreateConnection()
-
 	var Fulluser userModels.User
 	err := db.Get(&Fulluser, "SELECT * FROM users WHERE email=($1) AND password=($2)", user.Email, user.Password)
 

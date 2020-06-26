@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	user "docker.go/src/Models/User"
 	"github.com/dgrijalva/jwt-go"
@@ -19,12 +18,12 @@ type Token struct {
 
 // GenerateToken Cria um novo token de usuario
 func GenerateToken(user user.User) (string, error) {
-	expirationTime := time.Now().Add(5 * time.Minute)
+	//expirationTime := time.Now().Add(5 * time.Minute)
 	claims := &Token{
-		User: user,
+		User:           user,
 		StandardClaims: jwt.StandardClaims{
 			// In JWT, the expiry time is expressed as unix milliseconds
-			ExpiresAt: expirationTime.Unix(),
+			//ExpiresAt: expirationTime.Unix(),
 		},
 	}
 

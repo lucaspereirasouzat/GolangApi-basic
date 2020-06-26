@@ -14,7 +14,7 @@ func AuthRoutes(route *gin.Engine) {
 		auth.POST("logout", session.Logout)
 		auth.POST("newPassword", session.RequestNewPassword)
 		auth.POST("changePassword", session.ChangePassword)
-		auth.Use(middleware.Auth([]string{"user", "ADM"}))
+		auth.Use(middleware.Auth([]string{"user", "adm"}))
 		auth.PUT("update", session.UpdateMyUser)
 		auth.GET("myUser", session.ShowMyUser)
 		//auth.POST()

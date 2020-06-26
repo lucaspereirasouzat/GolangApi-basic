@@ -2,26 +2,39 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package smtp_test
+package mail
 
 import (
 	"fmt"
 	"log"
+	"net"
 	"net/smtp"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func Example(mail string, message string) {
 	// Connect to the remote SMTP server.
-	c, err := smtp.Dial("mail.example.com:25")
+	fmt.Println(os.Getenv("SMTP_SERVER") + ":" + os.Getenv("SMTP_PORT"))
+
+	conn, err := net.Dial("tcp", os.Getenv("SMTP_SERVER")+":"+os.Getenv("SMTP_PORT"))
+	if err != nil {
+		fmt.Println("err", err)
+	}
+	fmt.Println(conn)
+	smtpAdress := os.Getenv("SMTP_SERVER") + ":" + os.Getenv("SMTP_PORT")
+	c, err := smtp.Dial(smtpAdress)
+	fmt.Println(c, err)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Set the sender and recipient first
-	if err := c.Mail("sender@example.org"); err != nil {
+	if err := c.Mail(os.Getenv("EMAIL_SMTP")); err != nil {
 		log.Fatal(err)
 	}
-	if err := c.Rcpt("recipient@example.net"); err != nil {
+	if err := c.Rcpt(mail); err != nil {
 		log.Fatal(err)
 	}
 
@@ -30,7 +43,7 @@ func Example(mail string, message string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = fmt.Fprintf(wc, "This is the email body")
+	_, err = fmt.Fprintf(wc, message)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,37 +59,44 @@ func Example(mail string, message string) {
 	}
 }
 
-// variables to make ExamplePlainAuth compile, without adding
-// unnecessary noise there.
-var (
-	from       = "gopher@example.net"
-	msg        = []byte("dummy message")
-	recipients = []string{"foo@example.com"}
-)
+// // variables to make ExamplePlainAuth compile, without adding
+// // unnecessary noise there.
+// var (
+// 	from       = "gopher@example.net"
+// 	msg        = []byte("dummy message")
+// 	recipients = []string{"foo@example.com"}
+// )
 
-func ExamplePlainAuth() {
-	// hostname is used by PlainAuth to validate the TLS certificate.
-	hostname := "mail.example.com"
-	auth := smtp.PlainAuth("", "user@example.com", "password", hostname)
+// func ExamplePlainAuth() {
+// 	// hostname is used by PlainAuth to validate the TLS certificate.
+// 	hostname := "mail.example.com"
+// 	auth := smtp.PlainAuth("", "user@example.com", "password", hostname)
 
-	err := smtp.SendMail(hostname+":25", auth, from, recipients, msg)
+// 	err := smtp.SendMail(hostname+":25", auth, from, recipients, msg)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// }
+
+func ExampleSendMail(to string, msg string) {
+	err := godotenv.Load()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Erro ao carregar o .env")
 	}
-}
 
-func ExampleSendMail() {
+	msgs := []byte(msg)
 	// Set up authentication information.
-	auth := smtp.PlainAuth("", "user@example.com", "password", "mail.example.com")
+	auth := smtp.PlainAuth("", os.Getenv("EMAIL_SMTP"), os.Getenv("EMAIL_Password"), os.Getenv("SMTP_SERVER"))
 
 	// Connect to the server, authenticate, set the sender and recipient,
 	// and send the email all in one step.
-	to := []string{"recipient@example.net"}
-	msg := []byte("To: recipient@example.net\r\n" +
-		"Subject: discount Gophers!\r\n" +
-		"\r\n" +
-		"This is the email body.\r\n")
-	err := smtp.SendMail("mail.example.com:25", auth, "sender@example.org", to, msg)
+	toB := []string{to}
+	// msgB := []byte(to + "\r\n" +
+	// 	"Subject: discount Gophers!\r\n" +
+	// 	"\r\n" +
+	// 	"This is the email body.\r\n")
+	fmt.Println(msgs, auth, toB)
+	err = smtp.SendMail(os.Getenv("SMTP_SERVER")+":"+os.Getenv("SMTP_PORT"), auth, os.Getenv("EMAIL_SMTP"), toB, msgs)
 	if err != nil {
 		log.Fatal(err)
 	}

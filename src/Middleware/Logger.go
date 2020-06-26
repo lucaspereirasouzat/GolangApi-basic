@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"time"
 
 	connection "docker.go/src/Connections"
@@ -33,13 +32,11 @@ func Logger() gin.HandlerFunc {
 			status := c.Writer.Status()
 
 			url := c.Request.URL.String()
-			fmt.Println(url)
+
 			//url = string(url)
 
 			var auth, _ = c.Get("auth")
 
-			fmt.Println("Method", c.Request.Method)
-			fmt.Println(c.Writer.Header())
 			log := connection.Log{
 				Time:    timeString,
 				Latency: latencyString,

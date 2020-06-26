@@ -13,10 +13,10 @@ func FileRoutes(route *gin.Engine) {
 	{
 		//	auth.POST("store", fileController.Store)
 		//auth.Use(middleware.Auth())
-		auth.Use(middleware.Auth([]string{"ADM"}))
+		auth.Use(middleware.Auth([]string{"adm"}))
 		auth.GET("index", fileController.Index)
 
-		auth.Use(middleware.Auth([]string{"ADM", "user"}))
+		auth.Use(middleware.Auth([]string{"adm", "user"}))
 		auth.GET("show", fileController.Show)
 		//	auth.PUT("update", fileController.Update)
 		//auth.POST()

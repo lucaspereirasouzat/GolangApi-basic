@@ -21,6 +21,10 @@ func Find(a []string, x string) int {
 	return len(a)
 }
 
+func Remove(s []string, i int) []string {
+	return append(s[:i], s[i+1:]...)
+}
+
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 
 func RandStringBytesRmndr(n int) string {

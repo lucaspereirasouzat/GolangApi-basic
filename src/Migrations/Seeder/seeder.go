@@ -17,7 +17,7 @@ func Seed(db *sqlx.DB) {
 	tx := db.MustBegin()
 	var Password = functions.GenerateMD5("1234")
 
-	tx.MustExec("INSERT INTO users (username, email, password,secureLevel) VALUES ($1, $2, $3, $4)", "Jason", "jmoiron@jmoiron.net", Password, "ADM")
+	tx.MustExec("INSERT INTO users (username, email, password,secureLevel) VALUES ($1, $2, $3, $4)", "Jason", "jmoiron@jmoiron.net", Password, "adm")
 
 	tx.Commit()
 	defer db.Close()

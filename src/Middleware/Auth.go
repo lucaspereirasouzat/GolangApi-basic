@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"time"
 
 	"docker.go/src/functions"
@@ -20,7 +21,7 @@ func Auth(list []string) gin.HandlerFunc {
 		}
 		// faz a verificação do token enviado no bear token do header
 		token, err := functions.VerifyToken(c.Request)
-
+		fmt.Println(token)
 		if err != nil {
 
 			if functions.Contains(list, "guest") {
@@ -45,8 +46,9 @@ func Auth(list []string) gin.HandlerFunc {
 			var usermaped = data.(map[string]interface{})
 
 			securelevel := usermaped["Securelevel"].(string)
-
+			fmt.Println(list)
 			if !functions.Contains(list, securelevel) {
+				fmt.Println("secure error")
 				c.String(404, "Você não tem permissão para fazer isso")
 				c.Abort()
 				panic(err)

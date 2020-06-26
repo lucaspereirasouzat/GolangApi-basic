@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"fmt"
 	"strconv"
 
 	connection "docker.go/src/Connections"
@@ -69,12 +70,11 @@ func Store(c *gin.Context) {
 	UserGet, _ := c.Get("auth")
 	us := UserGet.(userModels.User)
 
-	db := connection.CreateConnection()
 	//tx := db.MustBegin()
 
 	var notificationItem = notification.Notification{}
 	err := functions.FromMSGPACK(c.Request.FormValue("code"), &notificationItem)
-
+	fmt.Println("code", c.Request.FormValue("code"))
 	if err != nil {
 		c.JSON(400, err)
 		panic(err)
@@ -93,7 +93,8 @@ func Store(c *gin.Context) {
 	// 	c.JSON(400, listError)
 	// 	return
 	// }
-
+	fmt.Println(notificationItem)
+	db := connection.CreateConnection()
 	db.Get(&notificationItem, "INSERT INTO "+table+" (tokennotification, user_id) VALUES ($1, $2) RETURNING *", notificationItem.TokenNotification, us.ID)
 
 	//	tx.Commit()
@@ -105,18 +106,18 @@ func Store(c *gin.Context) {
 
 // Show Mostra um item notificação
 func Show(c *gin.Context) {
-	db := connection.CreateConnection()
 	mynotification := notification.Notification{}
 
 	id := c.Query("id")
 
+	db := connection.CreateConnection()
 	err := db.Get(&mynotification, "SELECT * FROM "+table+" WHERE tokennotification=($1)", id)
+	defer db.Close()
 
 	if err != nil {
 		c.JSON(400, err)
 		return
 	}
-	defer db.Close()
 	c.JSON(200, mynotification)
 }
 
@@ -124,8 +125,6 @@ func Show(c *gin.Context) {
  Atualiza um novo usuario pelo id
 */
 func Update(c *gin.Context) {
-	db := connection.CreateConnection()
-
 	id := c.Query("id")
 
 	var notificationItem notification.Notification
@@ -135,7 +134,7 @@ func Update(c *gin.Context) {
 		c.JSON(400, err)
 		panic(err)
 	}
-
+	db := connection.CreateConnection()
 	err = db.Get(&notificationItem, "UPDATE "+table+" SET tokennotification = ($2) WHERE tokennotification = ($1)", id, notificationItem.TokenNotification)
 	if err != nil {
 		c.JSON(400, err)
@@ -150,13 +149,12 @@ func Update(c *gin.Context) {
  Deleta o usuario pelo id
 */
 func Delete(c *gin.Context) {
-	db := connection.CreateConnection()
-
 	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
 	if err != nil {
 		c.JSON(400, err)
 		return
 	}
+	db := connection.CreateConnection()
 	db.MustExec("DELETE FROM "+table+" WHERE tokennotification = ($1)", id)
 	defer db.Close()
 
@@ -166,4 +164,29 @@ func Delete(c *gin.Context) {
 	}
 
 	c.JSON(200, "OK")
+}
+
+func SendNotificationToUser(c *gin.Context) {
+	search := c.DefaultQuery("user_id", "1")
+	query := ""
+	query = " WHERE user_id = '" + search + "'"
+	selectFields := functions.SelectFields([]string{"tokennotification"})
+
+	db := connection.CreateConnection()
+
+	notifications := []notification.Notification{}
+	err := connection.QueryTable(db, table, selectFields, 0, 100, query, &notifications)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(notifications)
+	// var list []string
+
+	// for _, v := range notifications {
+	// 	list = append(list, v.TokenNotification)
+	// }
+	// fmt.Println(list)
+	//list = functions.Remove(list, 0)
+
+	functions.SendNotification(notifications[0].TokenNotification)
 }
