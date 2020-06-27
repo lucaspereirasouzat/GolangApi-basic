@@ -17,7 +17,7 @@ func Schema() string {
 		email text UNIQUE,
 		password text,
 		secureLevel text DEFAULT 'user',
-		file_id text,
+		pathfile text,
 		created_at DATE NOT NULL DEFAULT CURRENT_DATE
 	);
 
@@ -28,26 +28,20 @@ func Schema() string {
 		created_at DATE NOT NULL DEFAULT CURRENT_DATE
 	);
 
-	CREATE TABLE IF NOT EXISTS file (
-		id SERIAL UNIQUE PRIMARY KEY,
-		path text,
-		user_id INTEGER REFERENCES users(id) NOT NULL,
-		created_at DATE NOT NULL DEFAULT CURRENT_DATE
-	);
-
 	CREATE TABLE IF NOT EXISTS notification (
 		tokenNotification text NOT NULL PRIMARY KEY,
 		user_id INTEGER REFERENCES users(id) NOT NULL,
 		created_at DATE NOT NULL DEFAULT CURRENT_DATE
 	);
 
-	do $$
-	begin
-		IF EXISTS (SELECT file_id FROM users) THEN 
-			ALTER TABLE users ADD FOREIGN KEY (file_id) REFERENCES file(id);
-		END IF;
-	end;
-	$$
+	CREATE TABLE IF NOT EXISTS dataNotification (
+		id SERIAL UNIQUE,
+		user_id INTEGER REFERENCES users(id) NOT NULL,
+		title text,
+		body text,
+		created_at DATE NOT NULL DEFAULT CURRENT_DATE
+	);
+
 	`
 
 }

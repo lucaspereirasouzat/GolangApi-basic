@@ -7,6 +7,7 @@ require (
 	github.com/appleboy/gin-jwt v2.5.0+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.6.3
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/edganiukov/fcm v0.4.0
 	github.com/elastic/go-elasticsearch v0.0.0
 	github.com/elastic/go-elasticsearch/v6 v6.8.11-0.20200609085412-b4979d4be640
 	github.com/fatih/structs v1.1.0

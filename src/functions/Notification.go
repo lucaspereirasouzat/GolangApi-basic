@@ -2,45 +2,44 @@ package functions
 
 import (
 	"fmt"
+	"log"
+	"os"
 
-	"github.com/NaySoftware/go-fcm"
+	"github.com/edganiukov/fcm"
 )
 
-const (
-	serverKey = "AAAAX770V_c:APA91bGIsNe-zeBt--88AXrD-9htQ3bbizsGbqHkTi-BF2d5zAa26IfzuwOZk495CQin6fTabMZ1FYkVdaVSe7BN6PCBLrOm2Xw_L1yAE_qrVIdPw8MttCGQISx6CnBRlrdz53EfkIj-"
-)
+func SendNotification(tokenNotification string, list []string, title string, body string) {
 
-func SendNotification(tokenNotification string) {
+	fmt.Println(list)
 
-	data := map[string]string{
-		"msg": "Hello World1",
-		"sum": "Happy Day",
+	itemNotification := fcm.Notification{}
+
+	itemNotification.Title = title
+	itemNotification.Body = body
+	//itemNotification.Subtitle = "Pereira"
+	// itemNotification.Icon = "Pereira"
+
+	msg := &fcm.Message{
+		Token: tokenNotification,
+		Data: map[string]interface{}{
+			"foo":   "bar",
+			"title": "lucas",
+			"body":  "Pereira",
+			"msg":   "DDD",
+		},
+		Notification: &itemNotification,
 	}
 
-	ids := []string{
-		tokenNotification,
+	// Create a FCM client to send the message.
+	client, err := fcm.NewClient(os.Getenv("SERVER_NOTIFICATION_KEY"))
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	// xds := []string{
-	// 	"token5",
-	// 	"token6",
-	// 	"token7",
-	// }
-
-	c := fcm.NewFcmClient(serverKey)
-	c.NewFcmRegIdsMsg(ids, data)
-	// if len(tokens) >= 1 {
-	// 	c.AppendDevices(tokens)
-	// }
-	//	c.AppendDevices(xds)
-
-	status, err := c.Send()
-
-	if err == nil {
-		fmt.Println(err)
-		status.PrintResults()
-	} else {
-		fmt.Println(err)
+	// Send the message and receive the response without retries.
+	response, err := client.Send(msg)
+	if err != nil {
+		/* ... */
 	}
-
+	fmt.Println(response)
 }

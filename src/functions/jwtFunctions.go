@@ -7,17 +7,17 @@ import (
 	"os"
 	"strings"
 
-	user "docker.go/src/Models/User"
+	models "docker.go/src/Models"
 	"github.com/dgrijalva/jwt-go"
 )
 
 type Token struct {
-	User user.User
+	User models.User
 	jwt.StandardClaims
 }
 
 // GenerateToken Cria um novo token de usuario
-func GenerateToken(user user.User) (string, error) {
+func GenerateToken(user models.User) (string, error) {
 	//expirationTime := time.Now().Add(5 * time.Minute)
 	claims := &Token{
 		User:           user,

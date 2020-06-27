@@ -4,11 +4,12 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 
 	connection "docker.go/src/Connections"
-	userModels "docker.go/src/Models/User"
+	models "docker.go/src/Models"
 	validators "docker.go/src/Validators"
 	"docker.go/src/functions"
 	"github.com/gin-gonic/gin"
@@ -29,12 +30,13 @@ func Session(c *gin.Context) {
 	fmt.Println("user", user)
 
 	db := connection.CreateConnection()
-	var Fulluser userModels.User
+	var Fulluser models.User
 	err := db.Get(&Fulluser, "SELECT * FROM users WHERE email=($1) AND password=($2)", user.Email, user.Password)
 
 	defer db.Close()
 
 	if err != nil {
+		fmt.Println(err)
 		var list [1]validators.Error
 
 		list[0] = validators.Error{
@@ -88,15 +90,15 @@ func Logout(c *gin.Context) {
 
 // ShowMyUser Mostra os dados do proprio usuario
 func ShowMyUser(c *gin.Context) {
-	var users, _ = c.Get("auth")
-	c.JSON(200, users)
+	var user, _ = c.Get("auth")
+	c.JSON(200, user)
 }
 
 // UpdateMyUser atualiza os dados do proprio usuario
 func UpdateMyUser(c *gin.Context) {
 	// Dados do prorio usuario do auth
 	UserGet, _ := c.Get("auth")
-	myUser := UserGet.(userModels.User)
+	myUser := UserGet.(models.User)
 
 	data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
 	if err != nil {
@@ -104,38 +106,21 @@ func UpdateMyUser(c *gin.Context) {
 		return
 	}
 
-	// Cria o arquivo
 	file, _, err := c.Request.FormFile("upload")
-
-	// Converte o id de int para string
-	userid := strconv.Itoa(int(myUser.ID))
-	filepath := "./tmp/userfile_" + userid + ".png"
+	path := "userfile_" + strconv.Itoa(int(myUser.ID)) + ".png"
+	filepath := "./tmp/" + path
 	out, err := os.Create(filepath)
-
 	if err != nil {
-		c.JSON(400, err)
-		return
+		log.Fatal(err)
 	}
-
 	defer out.Close()
 	_, err = io.Copy(out, file)
 	if err != nil {
-		c.JSON(400, err)
-		return
+		log.Fatal(err)
 	}
 
-	if !myUser.FileId.Valid {
-		db := connection.CreateConnection()
-
-		var fileID int
-		err := db.QueryRow("INSERT INTO file (path, user_id) VALUES ($1, $2) RETURNING id", filepath, userid).Scan(&fileID)
-
-		if err != nil {
-			c.JSON(400, err)
-			return
-		}
-
-		var user userModels.User
+	if len(myUser.Pathfile.String) == 0 {
+		var user models.User
 
 		err = msgpack.Unmarshal(data, &user)
 
@@ -144,7 +129,9 @@ func UpdateMyUser(c *gin.Context) {
 			panic(err)
 		}
 
-		err = db.Get(&user, "UPDATE users SET username = ($2) file_id=($3)  WHERE id = ($1) RETURNING *", myUser.ID, user.Username, fileID)
+		db := connection.CreateConnection()
+		err = db.Get(&user, "UPDATE users SET username = ($2), pathfile = ($3)  WHERE id = ($1) RETURNING *", myUser.ID, user.Username, path)
+		defer db.Close()
 
 		if err != nil {
 			c.JSON(400, err)
@@ -153,9 +140,8 @@ func UpdateMyUser(c *gin.Context) {
 
 		c.JSON(200, user)
 
-		defer db.Close()
 	} else {
-		var user userModels.User
+		var user models.User
 
 		err = msgpack.Unmarshal(data, &user)
 		if err != nil {
@@ -179,7 +165,7 @@ func UpdateMyUser(c *gin.Context) {
 // RequestNewPassword envia o email
 func RequestNewPassword(c *gin.Context) {
 	email := c.Request.FormValue("email")
-	user := userModels.User{}
+	user := models.User{}
 
 	db := connection.CreateConnection()
 	err := connection.ShowRow(db, "users", &user, "email", email)
@@ -224,7 +210,7 @@ func ChangePassword(c *gin.Context) {
 
 	password := functions.GenerateMD5(c.Request.FormValue("password"))
 
-	user := userModels.User{}
+	user := models.User{}
 
 	err = db.Get(&user, "UPDATE users SET password = ($2) WHERE id = ($1) RETURNING *", userID, password)
 	if err != nil {

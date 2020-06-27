@@ -8,7 +8,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 
-	models "docker.go/src/Models/User"
+	models "docker.go/src/Models"
 )
 
 // Auth Faz o Log do sistema
@@ -59,20 +59,13 @@ func Auth(list []string) gin.HandlerFunc {
 			user.Username = usermaped["Username"].(string)
 			user.Email = usermaped["Email"].(string)
 			user.Securelevel = usermaped["Securelevel"].(string)
-			fileResult := usermaped["FileId"].(map[string]interface{})
-			user.FileId.Valid = fileResult["Valid"].(bool)
-			user.FileId.Int64 = int64(fileResult["Int64"].(float64))
+			Path := usermaped["Pathfile"].(map[string]interface{})
+			user.Pathfile.String = Path["String"].(string)
+			user.Pathfile.Valid = Path["Valid"].(bool)
+			// user.Pathfile.String = usermaped["Pathfile"].(string)
 			user.CreatedAt, err = time.Parse(time.RFC3339, usermaped["CreatedAt"].(string))
 		}
-		//fmt.Println(user)
 
 		c.Set("auth", user)
-		// before request
-
-		//c.Next()
-
-		// access the status we are sending
-		// status := c.Writer.Status()
-		// log.Println(status)
 	}
 }

@@ -11,7 +11,7 @@ import (
 	"strconv"
 
 	connection "docker.go/src/Connections"
-	userModels "docker.go/src/Models/User"
+	models "docker.go/src/Models"
 	validatores "docker.go/src/Validators"
 	"docker.go/src/functions"
 	"github.com/gin-gonic/gin"
@@ -23,7 +23,7 @@ type Lista struct {
 	Page        uint64
 	RowsPerPage uint64
 	Total       uint64
-	Table       []userModels.User
+	Table       []models.User
 }
 
 func callTable(page uint64, rowsPerPage uint64, search string) (list Lista, err error) {
@@ -32,7 +32,7 @@ func callTable(page uint64, rowsPerPage uint64, search string) (list Lista, err 
 
 	db := connection.CreateConnection()
 
-	users := []userModels.User{}
+	users := []models.User{}
 	//Faz a query principal que retorna os usuarios com paginação
 	err = connection.QueryTable(
 		db,
@@ -55,7 +55,7 @@ func callTable(page uint64, rowsPerPage uint64, search string) (list Lista, err 
 	// 	panic(err)
 	// }
 
-	//models := rmfield(userModels.User, "Password")
+	//models := rmfield(models.User, "Password")
 
 	//var list Lista
 
@@ -175,7 +175,7 @@ func Store(c *gin.Context) {
 func Show(c *gin.Context) {
 	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
 
-	user := userModels.User{}
+	user := models.User{}
 	db := connection.CreateConnection()
 
 	err = connection.ShowRow(db, table, &user, "id", id)
@@ -196,18 +196,18 @@ func Update(c *gin.Context) {
 		return
 	}
 
-	var userMsgPack userModels.User
+	var userMsgPack models.User
 
 	functions.FromMSGPACK(c.Request.FormValue("code"), &userMsgPack)
 
-	var fullUser userModels.User
+	var fullUser models.User
 	db := connection.CreateConnection()
 
 	connection.ShowRow(db, table, &fullUser, "id", id)
 
 	file, _, err := c.Request.FormFile("upload")
-	userid := strconv.Itoa(int(id))
-	filepath := "./tmp/userfile_" + userid + ".png"
+	path := "userfile_" + strconv.Itoa(int(id)) + ".png"
+	filepath := "./tmp/" + path
 	out, err := os.Create(filepath)
 	if err != nil {
 		log.Fatal(err)
@@ -218,18 +218,10 @@ func Update(c *gin.Context) {
 		log.Fatal(err)
 	}
 
-	if !fullUser.FileId.Valid {
+	if fullUser.Pathfile.Valid {
 		db := connection.CreateConnection()
 
-		var fileID int
-		err := db.QueryRow("INSERT INTO file (path, user_id) VALUES ($1, $2) RETURNING id", filepath, userid).Scan(&fileID)
-
-		if err != nil {
-			c.JSON(400, err)
-			return
-		}
-
-		err = db.Get(&userMsgPack, "UPDATE users SET username = ($2) file_id=($3)  WHERE id = ($1) RETURNING *", id, fullUser.Username, fileID)
+		err = db.Get(&userMsgPack, "UPDATE users SET username = ($2) pathfile = ($3)  WHERE id = ($1) RETURNING *", id, fullUser.Username, path)
 
 		if err != nil {
 			c.JSON(400, err)

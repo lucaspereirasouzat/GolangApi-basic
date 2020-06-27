@@ -1,13 +1,6 @@
 package notification
 
 import (
-	"fmt"
-	"net/http"
-	"strconv"
-
-	connection "docker.go/src/Connections"
-	file "docker.go/src/Models/File"
-	"docker.go/src/functions"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
@@ -17,44 +10,44 @@ const table = "file"
 /*
 	Faz listagem de todos os usuarios
 */
-func Index(c *gin.Context) {
+// func Index(c *gin.Context) {
 
-	files := []file.File{}
+// 	files := []file.File{}
 
-	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
-	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
-	search := c.DefaultQuery("search", "")
+// 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
+// 	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
+// 	search := c.DefaultQuery("search", "")
 
-	query := ""
-	query = functions.SearchFields(search, []string{"username", "email", "secureLevel"})
-	selectFields := functions.SelectFields([]string{})
+// 	query := ""
+// 	query = functions.SearchFields(search, []string{"username", "email", "secureLevel"})
+// 	selectFields := functions.SelectFields([]string{})
 
-	db := connection.CreateConnection()
+// 	db := connection.CreateConnection()
 
-	err = connection.QueryTable(db, table, selectFields, page, rowsPerPage, " ", &files)
-	total, err := connection.QueryTotalTable(db, table, query)
+// 	err = connection.QueryTable(db, table, selectFields, page, rowsPerPage, " ", &files)
+// 	total, err := connection.QueryTotalTable(db, table, query)
 
-	if err != nil {
-		c.String(400, "%s", err)
-		panic(err)
-	}
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer db.Close()
+// 	if err != nil {
+// 		c.String(400, "%s", err)
+// 		panic(err)
+// 	}
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return
+// 	}
+// 	defer db.Close()
 
-	type IndexList struct {
-		Page        uint64
-		RowsPerPage uint64
-		Total       uint64
-		Table       []file.File
-	}
+// 	type IndexList struct {
+// 		Page        uint64
+// 		RowsPerPage uint64
+// 		Total       uint64
+// 		Table       []file.File
+// 	}
 
-	list := IndexList{page, rowsPerPage, total, files}
+// 	list := IndexList{page, rowsPerPage, total, files}
 
-	c.IndentedJSON(http.StatusOK, list)
-}
+// 	c.IndentedJSON(http.StatusOK, list)
+// }
 
 /*
 	Cadastra um novo usuario no sistema
@@ -106,22 +99,8 @@ var validate *validator.Validate
  Procura uma imagem pelo id
 */
 func Show(c *gin.Context) {
-	db := connection.CreateConnection()
-	file := file.File{}
-
-	id, err := strconv.ParseInt(c.DefaultQuery("id", "1"), 10, 16)
-	err = db.Get(&file, "SELECT * FROM file WHERE id=$1", id)
-	db.Close()
-
-	fmt.Printf("%#v\n", file)
-
-	if err != nil {
-		c.JSON(400, "Arquivo não encontrado")
-		fmt.Println(err)
-		return
-	}
-	c.File(file.Path)
-	//c.JSON(200, file)
+	path := c.Query("path")
+	c.File("./tmp/" + path)
 }
 
 /*

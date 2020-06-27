@@ -5,8 +5,7 @@ import (
 	"strconv"
 
 	connection "docker.go/src/Connections"
-	notification "docker.go/src/Models/Notification"
-	userModels "docker.go/src/Models/User"
+	models "docker.go/src/Models"
 	"docker.go/src/functions"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -28,7 +27,7 @@ func Index(c *gin.Context) {
 
 	db := connection.CreateConnection()
 
-	notifications := []notification.Notification{}
+	notifications := []models.Notification{}
 	err = connection.QueryTable(db, table, selectFields, page, rowsPerPage, "", &notifications)
 
 	if err != nil {
@@ -47,7 +46,7 @@ func Index(c *gin.Context) {
 		Page        uint64
 		RowsPerPage uint64
 		Total       uint64
-		Table       []notification.Notification
+		Table       []models.Notification
 	}{page,
 		rowsPerPage,
 		total,
@@ -68,11 +67,11 @@ var validate *validator.Validate
 func Store(c *gin.Context) {
 
 	UserGet, _ := c.Get("auth")
-	us := UserGet.(userModels.User)
+	us := UserGet.(models.User)
 
 	//tx := db.MustBegin()
 
-	var notificationItem = notification.Notification{}
+	var notificationItem = models.Notification{}
 	err := functions.FromMSGPACK(c.Request.FormValue("code"), &notificationItem)
 	fmt.Println("code", c.Request.FormValue("code"))
 	if err != nil {
@@ -106,7 +105,7 @@ func Store(c *gin.Context) {
 
 // Show Mostra um item notificação
 func Show(c *gin.Context) {
-	mynotification := notification.Notification{}
+	mynotification := models.Notification{}
 
 	id := c.Query("id")
 
@@ -127,7 +126,7 @@ func Show(c *gin.Context) {
 func Update(c *gin.Context) {
 	id := c.Query("id")
 
-	var notificationItem notification.Notification
+	var notificationItem models.Notification
 
 	err := functions.FromMSGPACK(c.Request.FormValue("code"), &notificationItem)
 	if err != nil {
@@ -172,12 +171,12 @@ func SendNotificationToUser(c *gin.Context) {
 	query = " WHERE user_id = '" + search + "'"
 	selectFields := functions.SelectFields([]string{"tokennotification"})
 
+	var notifications []models.Notification
 	db := connection.CreateConnection()
-
-	notifications := []notification.Notification{}
 	err := connection.QueryTable(db, table, selectFields, 0, 100, query, &notifications)
+	defer db.Close()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("error query", err)
 	}
 	fmt.Println(notifications)
 	// var list []string
@@ -187,6 +186,42 @@ func SendNotificationToUser(c *gin.Context) {
 	// }
 	// fmt.Println(list)
 	//list = functions.Remove(list, 0)
+	go func() {
+		title := c.Query("title")
+		fmt.Println(title)
+		body := c.Query("body")
+		functions.SendNotification(notifications[0].TokenNotification, []string{}, title, body)
+		db := connection.CreateConnection()
+		db.MustExec("INSERT INTO datanotification (title,body, user_id) VALUES ($1, $2,$3)", title, body, search)
+		defer db.Close()
+	}()
 
-	functions.SendNotification(notifications[0].TokenNotification)
+	c.String(200, "enviado para ")
+}
+
+func MyNotifications(c *gin.Context) {
+	search := c.DefaultQuery("user_id", "1")
+	query := ""
+	query = " WHERE user_id = '" + search + "'"
+	selectFields := functions.SelectFields([]string{})
+
+	db := connection.CreateConnection()
+
+	notifications := []models.DataNotification{}
+	err := connection.QueryTable(db, "datanotification", selectFields, 0, 100, query, &notifications)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(notifications)
+
+	c.JSON(200, notifications)
+	// var list []string
+
+	// for _, v := range notifications {
+	// 	list = append(list, v.TokenNotification)
+	// }
+	// fmt.Println(list)
+	//list = functions.Remove(list, 0)
+
+	//functions.SendNotification(notifications[0].TokenNotification)
 }

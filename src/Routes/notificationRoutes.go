@@ -14,6 +14,7 @@ func NotificationRoutes(route *gin.Engine) {
 		auth.Use(middleware.Auth([]string{"user", "adm"}))
 		auth.POST("store", notificationController.Store)
 		auth.POST("SendNotificationToUser", notificationController.SendNotificationToUser)
+		auth.GET("MyNotifications", notificationController.MyNotifications)
 		auth.GET("index", notificationController.Index)
 		auth.GET("show", notificationController.Show)
 		auth.PUT("update", notificationController.Update)

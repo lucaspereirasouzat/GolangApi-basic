@@ -1,4 +1,4 @@
-package notification
+package models
 
 import (
 	"database/sql"
@@ -10,4 +10,12 @@ type Notification struct {
 	TokenNotification string        `db:"tokennotification"`
 	UserID            sql.NullInt64 `db:"user_id"`
 	CreatedAt         time.Time     `db:"created_at"`
+}
+
+/* DataNotification é uma notificação */
+type DataNotification struct {
+	ID          uint64
+	UserID      sql.NullInt64 `db:"user_id"`
+	Title, Body string
+	CreatedAt   time.Time `db:"created_at"`
 }

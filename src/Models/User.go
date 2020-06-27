@@ -1,4 +1,4 @@
-package user
+package models
 
 import (
 	"database/sql"
@@ -8,7 +8,7 @@ import (
 /* User é o modelo do usuario padrão */
 type User struct {
 	ID                        uint64
-	FileId                    sql.NullInt64 `db:"file_id"`
+	Pathfile                  sql.NullString `db:"pathfile"`
 	Username, Password, Email string
 	Securelevel               string    `db:"securelevel"`
 	CreatedAt                 time.Time `db:"created_at"`
