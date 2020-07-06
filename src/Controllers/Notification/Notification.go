@@ -17,17 +17,21 @@ const table string = "notification"
 	Faz listagem de todos os tokens de notificação
 */
 func Index(c *gin.Context) {
+
+	/* dados do usuario */
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
 	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "10"), 10, 10)
 	search := c.DefaultQuery("search", "")
+	/* fim dados do usuario */
 
-	query := ""
-	query = functions.SearchFields(search, []string{"username", "email", "secureLevel"})
+	/* Seleção de campos */
+	query := functions.SearchFields(search, []string{"username", "email", "secureLevel"})
 	selectFields := functions.SelectFields([]string{})
-
-	db := connection.CreateConnection()
+	/* fim Seleção de campos */
 
 	notifications := []models.Notification{}
+
+	db := connection.CreateConnection()
 	err = connection.QueryTable(db, table, selectFields, page, rowsPerPage, "", &notifications)
 
 	if err != nil {
@@ -36,6 +40,7 @@ func Index(c *gin.Context) {
 	}
 
 	total, err := connection.QueryTotalTable(db, table, query)
+	defer db.Close()
 
 	if err != nil {
 		c.JSON(400, err)
@@ -55,7 +60,8 @@ func Index(c *gin.Context) {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	defer db.Close()
+
+	// resposta para o usuario
 	c.IndentedJSON(200, list)
 }
 
@@ -135,11 +141,11 @@ func Update(c *gin.Context) {
 	}
 	db := connection.CreateConnection()
 	err = db.Get(&notificationItem, "UPDATE "+table+" SET tokennotification = ($2) WHERE tokennotification = ($1)", id, notificationItem.TokenNotification)
+	defer db.Close()
 	if err != nil {
 		c.JSON(400, err)
 		return
 	}
-	defer db.Close()
 
 	c.JSON(200, notificationItem)
 }
@@ -165,10 +171,10 @@ func Delete(c *gin.Context) {
 	c.JSON(200, "OK")
 }
 
+// SendNotificationToUser envia notificação para um usuario
 func SendNotificationToUser(c *gin.Context) {
 	search := c.DefaultQuery("user_id", "1")
-	query := ""
-	query = " WHERE user_id = '" + search + "'"
+	query := " WHERE user_id = '" + search + "'"
 	selectFields := functions.SelectFields([]string{"tokennotification"})
 
 	var notifications []models.Notification
@@ -178,7 +184,7 @@ func SendNotificationToUser(c *gin.Context) {
 	if err != nil {
 		fmt.Println("error query", err)
 	}
-	fmt.Println(notifications)
+	//fmt.Println(notifications)
 	// var list []string
 
 	// for _, v := range notifications {
@@ -188,7 +194,6 @@ func SendNotificationToUser(c *gin.Context) {
 	//list = functions.Remove(list, 0)
 	go func() {
 		title := c.Query("title")
-		fmt.Println(title)
 		body := c.Query("body")
 		functions.SendNotification(notifications[0].TokenNotification, []string{}, title, body)
 		db := connection.CreateConnection()
@@ -201,20 +206,34 @@ func SendNotificationToUser(c *gin.Context) {
 
 func MyNotifications(c *gin.Context) {
 	search := c.DefaultQuery("user_id", "1")
-	query := ""
-	query = " WHERE user_id = '" + search + "'"
+	query := " WHERE user_id = '" + search + "'"
+
+	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
+	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "50"), 10, 10)
 	selectFields := functions.SelectFields([]string{})
 
 	db := connection.CreateConnection()
 
 	notifications := []models.DataNotification{}
-	err := connection.QueryTable(db, "datanotification", selectFields, 0, 100, query, &notifications)
+	err = connection.QueryTable(db, "datanotification", selectFields, page, rowsPerPage, query+" ORDER BY created_at DESC", &notifications)
+	total, err := connection.QueryTotalTable(db, "datanotification", query)
+	defer db.Close()
 	if err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println(notifications)
 
-	c.JSON(200, notifications)
+	list := struct {
+		Page        uint64
+		RowsPerPage uint64
+		Total       uint64
+		Table       []models.DataNotification
+	}{page,
+		rowsPerPage,
+		total,
+		notifications}
+
+	c.JSON(200, list)
 	// var list []string
 
 	// for _, v := range notifications {

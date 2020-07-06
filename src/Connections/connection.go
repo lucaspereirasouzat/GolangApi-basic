@@ -97,17 +97,37 @@ func ShowMongoDB() {
 
 }
 
-func SelectMongoDB(db string, cole string, value interface{}) bson.M {
+func SelectMongoDB(db string, cole string, search string, skip int64, limit int64) (inface []bson.M, total int64, err error) {
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	err = clientMongo.Connect(ctx)
+
 	collection := clientMongo.Database(db).Collection(cole)
-	cur, err := collection.Find(ctx, bson.D{})
+
+	options := options.Find()
+
+	// Sort by `_id` field descending
+	options.SetSort(bson.D{{"_id", -1}})
+
+	// Limit by 10 documents only
+	options.SetLimit(limit)
+
+	options.SetSkip(skip)
+
+	//	filter := bson.M{"url": bson.M{"$search": search}}
+
+	cur, err := collection.Find(ctx, bson.M{}, options) //.Sort("_id").Limit()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("error mongo", err)
 	}
+
+	count, err := clientMongo.Database(db).Collection(cole).CountDocuments(context.Background(), bson.D{})
+
 	defer cur.Close(ctx)
-	var result bson.M
+	//var inface []bson.M
 	for cur.Next(ctx) {
+		var result bson.M
 		err := cur.Decode(&result)
+		inface = append(inface, result)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -116,7 +136,8 @@ func SelectMongoDB(db string, cole string, value interface{}) bson.M {
 	if err := cur.Err(); err != nil {
 		log.Fatal(err)
 	}
-	return result
+
+	return inface, count, nil
 }
 
 func Elastic() {

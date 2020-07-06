@@ -60,10 +60,13 @@ func main() {
 		Credentials:     true,
 		ValidateHeaders: false,
 	}))
+
+	routes.WebsocketRoutes(router)
 	// ligar as rotas para o gin
 	routes.UsersRoutes(router)
 	routes.AuthRoutes(router)
 	routes.FileRoutes(router)
+	routes.LogsRoutes(router)
 	routes.NotificationRoutes(router)
 
 	Validate = validator.New()

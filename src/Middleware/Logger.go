@@ -47,6 +47,18 @@ func Logger() gin.HandlerFunc {
 			}
 
 			connection.InsertMongoDB("Log", "logs", log)
+
+			// var list loggs.Lista
+
+			// list, err := loggs.CallTableLog(0, 50, "")
+
+			// json, err := json.Marshal(list)
+			// if err != nil {
+			// 	c.JSON(400, err)
+			// 	return
+			// }
+			// newJson := string(json)
+			// connection.SetItemRedis("listLogs", newJson)
 		}()
 
 	}

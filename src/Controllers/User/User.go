@@ -50,10 +50,9 @@ func callTable(page uint64, rowsPerPage uint64, search string) (list Lista, err 
 
 	defer db.Close()
 
-	// if err != nil {
-	// 	c.JSON(400, err)
-	// 	panic(err)
-	// }
+	if err != nil {
+		return Lista{}, err
+	}
 
 	//models := rmfield(models.User, "Password")
 
@@ -72,8 +71,8 @@ const table string = "users"
 // Index Faz listagem de todos os usuarios
 func Index(c *gin.Context) {
 	// Pega a pagina e a quantidade de campos que serão exibidos
-	page, _ := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
-	rowsPerPage, _ := strconv.ParseUint(c.DefaultQuery("RowsPerPage", "50"), 10, 10)
+	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
+	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("RowsPerPage", "50"), 10, 10)
 	search := c.DefaultQuery("search", "")
 	var list Lista
 	//connection.SetItemRedis()
@@ -84,13 +83,14 @@ func Index(c *gin.Context) {
 
 			if err != nil {
 				c.JSON(400, err)
-				panic(err)
+				return
 			}
 
 			go func() {
 				json, err := json.Marshal(list)
 				if err != nil {
-					//return nil, err
+					c.JSON(400, err)
+					return
 				}
 				newJson := string(json)
 				connection.SetItemRedis("listUsers", newJson)
@@ -100,16 +100,15 @@ func Index(c *gin.Context) {
 			err := json.Unmarshal([]byte(result), &list)
 			if err != nil {
 				c.JSON(400, err)
-				panic(err)
+				return
 			}
 		}
 	} else {
-		var err error
 		list, err = callTable(page, rowsPerPage, search)
 
 		if err != nil {
 			c.JSON(400, err)
-			panic(err)
+			return
 		}
 	}
 
