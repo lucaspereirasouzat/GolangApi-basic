@@ -2,44 +2,58 @@ package functions
 
 import (
 	"fmt"
-	"log"
 	"os"
 
-	"github.com/edganiukov/fcm"
+	"github.com/NaySoftware/go-fcm"
+	//"github.com/edganiukov/fcm"
 )
 
-func SendNotification(tokenNotification string, list []string, title string, body string) {
+func SendNotification(tokenNotification string, list []string, title string, body string) error {
 
-	fmt.Println(list)
+	//fmt.Println("list", list)
 
-	itemNotification := fcm.Notification{}
+	// for i := 0; i < count(list); i++ {
+
+	// }
+
+	itemNotification := fcm.NotificationPayload{}
 
 	itemNotification.Title = title
 	itemNotification.Body = body
 	//itemNotification.Subtitle = "Pereira"
 	// itemNotification.Icon = "Pereira"
 
-	msg := &fcm.Message{
-		Token: tokenNotification,
+	msg := &fcm.FcmMsg{
+		// Token: tokenNotification,
+		//RegistrationIDs: list,
+		//	To: tokenNotification,
 		Data: map[string]interface{}{
 			"foo":   "bar",
 			"title": "lucas",
 			"body":  "Pereira",
 			"msg":   "DDD",
 		},
-		Notification: &itemNotification,
+
+		// Notification: &itemNotification,
+	}
+
+	ids := []string{
+		tokenNotification,
 	}
 
 	// Create a FCM client to send the message.
-	client, err := fcm.NewClient(os.Getenv("SERVER_NOTIFICATION_KEY"))
-	if err != nil {
-		log.Fatal(err)
-	}
+	client := fcm.NewFcmClient(os.Getenv("SERVER_NOTIFICATION_KEY"))
+	client.NewFcmRegIdsMsg(ids, msg)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// Send the message and receive the response without retries.
-	response, err := client.Send(msg)
+	_, err := client.Send()
 	if err != nil {
+		fmt.Println("Error on send", err)
+		return err
 		/* ... */
 	}
-	fmt.Println(response)
+	return nil
 }

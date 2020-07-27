@@ -185,17 +185,29 @@ func SendNotificationToUser(c *gin.Context) {
 		fmt.Println("error query", err)
 	}
 	//fmt.Println(notifications)
-	// var list []string
+	var list []string
 
-	// for _, v := range notifications {
-	// 	list = append(list, v.TokenNotification)
-	// }
-	// fmt.Println(list)
+	for _, v := range notifications {
+		list = append(list, v.TokenNotification)
+	}
+	fmt.Println(list)
 	//list = functions.Remove(list, 0)
 	go func() {
 		title := c.Query("title")
 		body := c.Query("body")
-		functions.SendNotification(notifications[0].TokenNotification, []string{}, title, body)
+
+		for _, element := range list {
+			err := functions.SendNotification(element, list, title, body)
+			if err == nil {
+				db := connection.CreateConnection()
+				db.MustExec("DELETE FROM "+table+" WHERE tokennotification = ($1)", element)
+				defer db.Close()
+			}
+			// index is the index where we are
+			// element is the element from someSlice for where we are
+		}
+		//functions.SendNotification(notifications[0].TokenNotification, list, title, body)
+
 		db := connection.CreateConnection()
 		db.MustExec("INSERT INTO datanotification (title,body, user_id) VALUES ($1, $2,$3)", title, body, search)
 		defer db.Close()
@@ -209,9 +221,8 @@ func MyNotifications(c *gin.Context) {
 	query := " WHERE user_id = '" + search + "'"
 
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
-	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("rowsPerPage", "50"), 10, 10)
+	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("RowsPerPage", "50"), 10, 10)
 	selectFields := functions.SelectFields([]string{})
-
 	db := connection.CreateConnection()
 
 	notifications := []models.DataNotification{}

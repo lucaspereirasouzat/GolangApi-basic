@@ -3,7 +3,6 @@ package user
 import (
 	base64 "encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -26,6 +25,7 @@ type Lista struct {
 	Table       []models.User
 }
 
+// Chamada para o Postgres dos Usuarios
 func callTable(page uint64, rowsPerPage uint64, search string) (list Lista, err error) {
 	query := functions.SearchFields(search, []string{"username", "email", "secureLevel"})
 	selectFields := functions.SelectFields([]string{"id", "username", "email", "securelevel", "created_at"})
@@ -74,10 +74,13 @@ func Index(c *gin.Context) {
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 8)
 	rowsPerPage, err := strconv.ParseUint(c.DefaultQuery("RowsPerPage", "50"), 10, 10)
 	search := c.DefaultQuery("search", "")
+
 	var list Lista
-	//connection.SetItemRedis()
+
 	if page == 0 && rowsPerPage == 50 && search == "" {
+		// Pega os dados do redis e faz a validação
 		result, err := connection.GetItemRedis("listUsers")
+		// Se ouver erro no redis ele fara a chamada normalmente para o Postgres
 		if err != nil {
 			list, err = callTable(page, rowsPerPage, search)
 
@@ -89,7 +92,7 @@ func Index(c *gin.Context) {
 			go func() {
 				json, err := json.Marshal(list)
 				if err != nil {
-					c.JSON(400, err)
+					//c.JSON(400, err)
 					return
 				}
 				newJson := string(json)
@@ -112,7 +115,7 @@ func Index(c *gin.Context) {
 		}
 	}
 
-	//fmt.Println(list)
+	// responde para o front com o json
 	c.JSON(200, list)
 }
 
@@ -263,13 +266,12 @@ func Delete(c *gin.Context) {
 		return
 	}
 	err = db.Get(&user, "DELETE FROM "+table+"  WHERE id = $1", id)
-	db.Close()
+	defer db.Close()
 
 	if err != nil {
 		c.JSON(400, err)
 		return
 	}
-	fmt.Printf("%#v\n", user)
 
 	c.JSON(200, user)
 }

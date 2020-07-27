@@ -170,6 +170,7 @@ func CreateConnection() *sqlx.DB {
 
 //ConnectionDB Cria a string de connexão
 func ConnectionDB() {
+
 	// carregar env
 	err := godotenv.Load()
 	if err != nil {

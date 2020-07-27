@@ -30,7 +30,7 @@ func CallTableLog(page int64, rowsPerPage int64, search string) (list Lista, err
 */
 func Index(c *gin.Context) {
 	page, err := strconv.ParseInt(c.DefaultQuery("page", "0"), 10, 8)
-	rowsPerPage, err := strconv.ParseInt(c.DefaultQuery("rowsPerPage", "50"), 10, 10)
+	rowsPerPage, err := strconv.ParseInt(c.DefaultQuery("RowsPerPage", "50"), 10, 10)
 	search := c.DefaultQuery("search", "")
 
 	if err != nil {

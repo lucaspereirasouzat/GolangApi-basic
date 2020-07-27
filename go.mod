@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	9fans.net/go v0.0.2
+	github.com/NaySoftware/go-fcm v0.0.0-20190516140123-808e978ddcd2
 	github.com/appleboy/gin-jwt v2.5.0+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.6.3
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -17,6 +18,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/howeyc/fsnotify v0.9.0 // indirect
 	github.com/itsjamie/gin-cors v0.0.0-20160420130702-97b4a9da7933
+	github.com/jasonlvhit/gocron v0.0.0-20200423141508-ab84337f7963
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/joho/godotenv v1.3.0
 	github.com/lib/pq v1.5.2

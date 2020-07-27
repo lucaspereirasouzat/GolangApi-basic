@@ -13,12 +13,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	cors "github.com/itsjamie/gin-cors"
+	"github.com/jasonlvhit/gocron"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 // use a single instance of Validate, it caches struct info
 var Validate *validator.Validate
+
+// function of cronjob
+func task() {
+	//fmt.Println("I am running task.")
+}
 
 func main() {
 
@@ -28,8 +34,7 @@ func main() {
 		log.Fatal("Erro ao carregar o .env")
 	}
 
-	//mail.ExampleSendMail("lucaspereiradesouzat@gmail.com", "TEste de email do golang")
-	//mail.ExampleSendMail("lucaspereiradesouzat@gmail.com", "TEste de email do golang")
+	// Conexões com os bancos de dados
 	connection.ConnectionDB()
 	connection.RedisConnection()
 	connection.MongoConnection()
@@ -73,9 +78,15 @@ func main() {
 
 	// Initializing the server in a goroutine so that
 	// it won't block the graceful shutdown handling below
-	router.Run(":" + os.Getenv("PORT"))
-	// go func() {
-	//endless.ListenAndServe(":4242", router)
-	// }()
+	// gocron.SetLocker(func(l gocron.Locker) {
+	// 	return l.Lock("a")
+	// })
+	go func() {
+		s := gocron.NewScheduler()
 
+		s.Every(3).Seconds().Do(task)
+		<-s.Start()
+	}()
+
+	router.Run(":" + os.Getenv("PORT"))
 }
