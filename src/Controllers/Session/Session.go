@@ -21,11 +21,14 @@ func Session(c *gin.Context) {
 	var user validators.Login
 	user.Email = c.Request.FormValue("email")
 	user.Password = c.Request.FormValue("password")
-	// if err := c.ShouldBindQuery(&user); err != nil {
-	// 	c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
-	// 	return
-	// }
-	fmt.Println("user", user)
+
+	hasError, listError := validators.Validate(user)
+
+	if hasError {
+		c.JSON(400, listError)
+		return
+	}
+
 	user.Password = functions.GenerateMD5(user.Password)
 	db := connection.CreateConnection()
 	var Fulluser models.User
@@ -34,7 +37,6 @@ func Session(c *gin.Context) {
 	defer db.Close()
 
 	if err != nil {
-		fmt.Println(err)
 		var list [1]validators.Error
 
 		list[0] = validators.Error{

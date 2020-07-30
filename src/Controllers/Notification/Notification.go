@@ -71,38 +71,27 @@ var validate *validator.Validate
 	Store Cadastra um novo token de notificação no sistema
 */
 func Store(c *gin.Context) {
-
+	// Pegar dados do usuario
 	UserGet, _ := c.Get("auth")
 	us := UserGet.(models.User)
 
-	//tx := db.MustBegin()
-
-	var notificationItem = models.Notification{}
+	// Montar o modelo da notificação para enviar para o db
+	var notificationItem models.Notification
 	err := functions.FromMSGPACK(c.Request.FormValue("code"), &notificationItem)
-	fmt.Println("code", c.Request.FormValue("code"))
 	if err != nil {
 		c.JSON(400, err)
-		panic(err)
+		return
 	}
-	// data, err := base64.StdEncoding.DecodeString(c.Request.FormValue("code"))
+	notificationItem.User = us
+	notificationItem.UserID.Int64 = int64(us.ID)
+	notificationItem.UserID.Valid = true
 
-	// err = msgpack.Unmarshal(data, &notificationItem)
-
-	// if err != nil {
-	// 	fmt.Println("error in conversion")
-	// 	panic(err)
-	// }
-	//	hasError, listError := validators.Validate(notificationItem)
-
-	// if hasError {
-	// 	c.JSON(400, listError)
-	// 	return
-	// }
-	fmt.Println(notificationItem)
+	// Criar conexão com o banco de dados
 	db := connection.CreateConnection()
-	db.Get(&notificationItem, "INSERT INTO "+table+" (tokennotification, user_id) VALUES ($1, $2) RETURNING *", notificationItem.TokenNotification, us.ID)
-
-	//	tx.Commit()
+	err = db.Get(&notificationItem, "INSERT INTO "+table+" (tokennotification, user_id) VALUES ($1, $2) RETURNING *", notificationItem.TokenNotification, us.ID)
+	if err != nil {
+		c.String(400, "%s", err)
+	}
 
 	defer db.Close()
 
