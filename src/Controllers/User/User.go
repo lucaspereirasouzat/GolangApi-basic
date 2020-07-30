@@ -1,7 +1,6 @@
 package user
 
 import (
-	base64 "encoding/base64"
 	"encoding/json"
 	"io"
 	"log"
@@ -14,8 +13,6 @@ import (
 	validatores "docker.go/src/Validators"
 	"docker.go/src/functions"
 	"github.com/gin-gonic/gin"
-
-	"github.com/vmihailenco/msgpack"
 )
 
 type Lista struct {
@@ -121,24 +118,9 @@ func Index(c *gin.Context) {
 
 // Store Cadastra um novo usuario no sistema
 func Store(c *gin.Context) {
-
-	code := c.Request.FormValue("code")
-
-	data, err := base64.StdEncoding.DecodeString(code)
-
-	if err != nil {
-		c.JSON(400, err)
-		return
-	}
-
 	var user validatores.Register
+	err := functions.FromMSGPACK(c.Request.FormValue("code"), &user)
 
-	err = msgpack.Unmarshal(data, &user)
-
-	if err != nil {
-		c.JSON(400, err)
-		panic(err)
-	}
 	hasError, listError := validatores.Validate(user)
 
 	if hasError {
@@ -206,7 +188,7 @@ func Show(c *gin.Context) {
 	err = connection.ShowRow(db, table, &user, "id", id)
 	defer db.Close()
 	if err != nil {
-		c.JSON(400, err)
+		c.JSON(400, "Não foram encotrados campos com este id")
 		return
 	}
 
