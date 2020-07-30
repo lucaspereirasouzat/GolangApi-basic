@@ -15,10 +15,13 @@ type Errors struct {
 	Errors []Error
 }
 
-var validate *validator.Validate
+// var validate *validator.Validate
 
-func Validate(data interface{}) (bool, Errors) {
+func Validate(data interface{}) (valid bool, listError Errors) {
+	validate := validator.New()
+
 	err := validate.Struct(data)
+	//fmt.Println(data, err)
 	if err != nil {
 		if _, ok := err.(*validator.InvalidValidationError); ok {
 			fmt.Println(err)
@@ -37,19 +40,19 @@ func Validate(data interface{}) (bool, Errors) {
 		// from here you can create your own error messages in whatever language you wish
 		return true, listError
 	}
-	return false, Errors{}
+	return false, listError
 }
 
-func validateVariable() {
+// func validateVariable() {
 
-	myEmail := "joeybloggs.gmail.com"
+// 	myEmail := "joeybloggs.gmail.com"
 
-	errs := validate.Var(myEmail, "required,email")
+// 	errs := validate.Var(myEmail, "required,email")
 
-	if errs != nil {
-		fmt.Println(errs) // output: Key: "" Error:Field validation for "" failed on the "email" tag
-		return
-	}
+// 	if errs != nil {
+// 		fmt.Println(errs) // output: Key: "" Error:Field validation for "" failed on the "email" tag
+// 		return
+// 	}
 
-	// email ok, move on
-}
+// 	// email ok, move on
+// }

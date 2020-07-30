@@ -10,6 +10,7 @@ type Notification struct {
 	TokenNotification string        `db:"tokennotification"`
 	UserID            sql.NullInt64 `db:"user_id"`
 	CreatedAt         time.Time     `db:"created_at"`
+	User              User          `db:"User"`
 }
 
 /* DataNotification é uma notificação */

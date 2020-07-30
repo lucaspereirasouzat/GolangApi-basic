@@ -139,23 +139,46 @@ func Store(c *gin.Context) {
 		c.JSON(400, err)
 		panic(err)
 	}
-	// hasError, listError := validatores.Validate(user)
-	// fmt.Println(hasError, listError)
+	hasError, listError := validatores.Validate(user)
 
-	// if hasError {
-	// 	c.JSON(400, listError)
-	// 	return
-	// }
+	if hasError {
+		c.JSON(400, listError)
+		return
+	}
 
+	// Gera o md5 da senha
 	user.Password = functions.GenerateMD5(user.Password)
 
+	// cria conexão com banco de dados
 	db := connection.CreateConnection()
-
-	err = db.Get(&user, "INSERT INTO "+table+" (username,email,password) VALUES ($1,$2,$3)  RETURNING *", user.Username, user.Email, user.Password)
+	err = db.Get(&user, "INSERT INTO "+table+" (username,email,password) VALUES ($1,$2,$3)  RETURNING username,email,password", user.Username, user.Email, user.Password)
 
 	if err != nil {
-		c.String(400, "%s", err)
-		panic(err)
+		switch err.Error() {
+		case `pq: duplicate key value violates unique constraint "users_email_key"`:
+			var list [1]validatores.Error
+
+			list[0] = validatores.Error{
+				Field:   "email",
+				Message: "E-mail duplicado",
+			}
+
+			type Errors struct {
+				Errors [1]validatores.Error
+			}
+
+			listErrors := Errors{
+				Errors: list,
+			}
+			// erro de não encontrado
+			c.JSON(400, listErrors)
+			break
+		default:
+			c.String(400, "%s", err)
+			break
+		}
+		return
+		//panic(err)
 	}
 	defer db.Close()
 

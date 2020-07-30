@@ -13,6 +13,10 @@ type Register struct {
 	Password string `validate:"required"`
 }
 
+func (data Register) CreateRegister() (valid bool, listError Errors) {
+	return Validate(data)
+}
+
 // UpdateUser Faz a validação do UpdateUser
 type UpdateUser struct {
 	Username string `validate:"required"`

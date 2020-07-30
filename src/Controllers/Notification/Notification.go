@@ -26,13 +26,13 @@ func Index(c *gin.Context) {
 
 	/* Seleção de campos */
 	query := functions.SearchFields(search, []string{"username", "email", "secureLevel"})
-	selectFields := functions.SelectFields([]string{})
+	selectFields := functions.SelectFields([]string{table + ".*", "user.*"})
 	/* fim Seleção de campos */
 
 	notifications := []models.Notification{}
 
 	db := connection.CreateConnection()
-	err = connection.QueryTable(db, table, selectFields, page, rowsPerPage, "", &notifications)
+	err = connection.QueryTable(db, table, selectFields, page, rowsPerPage, " JOIN user ON "+table+".user_id ON user.id", &notifications)
 
 	if err != nil {
 		c.JSON(400, err)
