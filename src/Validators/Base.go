@@ -43,16 +43,15 @@ func Validate(data interface{}) (valid bool, listError Errors) {
 	return false, listError
 }
 
-// func validateVariable() {
+func validateVariable(item interface{}, validation string) {
+	validate := validator.New()
 
-// 	myEmail := "joeybloggs.gmail.com"
+	errs := validate.Var(item, validation)
 
-// 	errs := validate.Var(myEmail, "required,email")
+	if errs != nil {
+		fmt.Println(errs) // output: Key: "" Error:Field validation for "" failed on the "email" tag
+		return
+	}
 
-// 	if errs != nil {
-// 		fmt.Println(errs) // output: Key: "" Error:Field validation for "" failed on the "email" tag
-// 		return
-// 	}
-
-// 	// email ok, move on
-// }
+	// email ok, move on
+}

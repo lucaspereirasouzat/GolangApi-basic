@@ -8,7 +8,6 @@ import (
 	models "docker.go/src/Models"
 	"docker.go/src/functions"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 const table string = "notification"
@@ -64,8 +63,6 @@ func Index(c *gin.Context) {
 	// resposta para o usuario
 	c.IndentedJSON(200, list)
 }
-
-var validate *validator.Validate
 
 /*
 	Store Cadastra um novo token de notificação no sistema

@@ -53,7 +53,6 @@ func SetItemRedis(key string, value interface{}) error {
 // GetItemRedis pega o item no redis
 func GetItemRedis(key string) (string, error) {
 	val, err := clientRedis.Get(key).Result()
-	fmt.Println("value", val)
 	return val, err
 }
 
