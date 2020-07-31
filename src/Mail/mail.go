@@ -14,7 +14,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func Example(mail string, message string) {
+func Example(mail, message string) {
 	// Connect to the remote SMTP server.
 	fmt.Println(os.Getenv("SMTP_SERVER") + ":" + os.Getenv("SMTP_PORT"))
 

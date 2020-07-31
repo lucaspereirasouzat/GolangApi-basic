@@ -46,6 +46,25 @@ func Schema() string {
 		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_DATE
 	);
 
+	CREATE TABLE IF NOT EXISTS email (
+		id SERIAL UNIQUE,
+		user_id INTEGER REFERENCES users(id) NOT NULL,
+		to text,
+		msg text,
+		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_DATE
+		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_DATE
+	);
+
+	CREATE TABLE IF NOT EXISTS dataHistory (
+		id SERIAL UNIQUE,
+		totalUserCount INTEGER DEFAULT 0,
+		userCount INTEGER DEFAULT 0,
+		notificationCount INTEGER DEFAULT 0,
+		emailCount INTEGER DEFAULT 0,
+		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_DATE
+		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_DATE
+	);
+
 	`
 
 }
